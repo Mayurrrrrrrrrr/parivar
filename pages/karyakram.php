@@ -13,7 +13,7 @@ if ($action === 'list') {
     $stmt->execute([$parivar_id]);
     $events = $stmt->fetchAll();
 } else {
-    $stmt = $pdo->prepare("SELECT id, pratham_naam, kul_naam FROM vyakti WHERE parivar_id = ?");
+    $stmt = $pdo->prepare("SELECT id, pratham_naam, kul_naam FROM vyakti WHERE parivar_id = ? ORDER BY pratham_naam");
     $stmt->execute([$parivar_id]);
     $persons = $stmt->fetchAll();
 }
@@ -55,7 +55,7 @@ if ($action === 'list') {
                 
                 <div class="form-group">
                     <label>शीर्षक *</label>
-                    <input type="text" name="shirshak" class="form-control" required placeholder="जैसे: मयूर का जन्मदिन">
+                    <input type="text" name="shirshak" class="form-control hindi-type" required placeholder="जैसे: मयूर का जन्मदिन">
                 </div>
 
                 <div class="form-group">

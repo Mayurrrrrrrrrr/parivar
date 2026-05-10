@@ -32,7 +32,7 @@ $feeds = $stmt->fetchAll();
     <div class="card" style="background:var(--bg-card); border-radius:16px; padding:16px; margin-bottom:20px; border:0.5px solid var(--seemant);">
         <form action="/parivar/api/feed.php?action=banao" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
-            <textarea name="sandesh" class="form-control" placeholder="आज क्या साझा करना चाहते हैं?" style="min-height:80px; border:none; background:transparent; padding:0;"></textarea>
+            <textarea name="sandesh" class="form-control hindi-type" placeholder="आज क्या साझा करना चाहते हैं?" style="min-height:80px; border:none; background:transparent; padding:0;"></textarea>
             <div class="divider"></div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <label style="cursor:pointer; color:var(--rang-pramukh); font-size:20px;">

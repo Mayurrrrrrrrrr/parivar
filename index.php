@@ -70,7 +70,7 @@ $success = $_GET['success'] ?? '';
             </div>
             <div class="form-group">
                 <label>आपका नाम</label>
-                <input type="text" name="naam" class="form-control" placeholder="जैसे: मयूर" required>
+                <input type="text" name="naam" class="form-control hindi-type" placeholder="जैसे: मयूर" required>
             </div>
             <div class="form-group">
                 <label>ईमेल</label>
@@ -88,11 +88,11 @@ $success = $_GET['success'] ?? '';
             <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
             <div class="form-group">
                 <label>परिवार का नाम (Surname/Kul)</label>
-                <input type="text" name="parivar_naam" class="form-control" placeholder="जैसे: शांडिल्य परिवार" required>
+                <input type="text" name="parivar_naam" class="form-control hindi-type" placeholder="जैसे: शांडिल्य परिवार" required>
             </div>
             <div class="form-group">
                 <label>आपका नाम (मुखिया)</label>
-                <input type="text" name="naam" class="form-control" required>
+                <input type="text" name="naam" class="form-control hindi-type" required>
             </div>
             <div class="form-group">
                 <label>ईमेल</label>
