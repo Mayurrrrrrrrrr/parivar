@@ -26,7 +26,7 @@ switch ($action) {
         $sandesh = trim($_POST['sandesh'] ?? '');
         
         if (empty($sandesh)) {
-            header('Location: ../pages/parivar_feed.php?error=khaali');
+            header('Location: /parivar/pages/parivar_feed.php?error=khaali');
             exit;
         }
 
@@ -38,7 +38,19 @@ switch ($action) {
         $stmt = $pdo->prepare("INSERT INTO parivar_feed (parivar_id, user_id, sandesh, photo_url) VALUES (?, ?, ?, ?)");
         $stmt->execute([$parivar_id, $user_id, $sandesh, $photo_url]);
         
-        header('Location: ../pages/parivar_feed.php?success=1');
+        header('Location: /parivar/pages/parivar_feed.php?success=1');
+        exit;
+
+    case 'react':
+        $post_id = $_POST['post_id'] ?? 0;
+        $emoji = $_POST['emoji'] ?? '';
+        if ($post_id && $emoji) {
+            $stmt = $pdo->prepare("INSERT INTO parivar_feed_reactions (post_id, user_id, emoji) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE emoji = VALUES(emoji)");
+            $stmt->execute([$post_id, $user_id, $emoji]);
+            echo json_encode(['safalta' => true]);
+        } else {
+            echo json_encode(['safalta' => false]);
+        }
         exit;
 
     default:

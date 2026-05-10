@@ -1,13 +1,24 @@
-<?php /** Navigation — परिवार पोर्टल */ ?>
-<nav class="main-nav">
-    <a href="/pages/dashboard.php">🏠 मुख्य पृष्ठ</a>
-    <a href="/pages/sadasy_banao.php">➕ सदस्य जोड़ें</a>
-    <a href="/pages/vansh_vriksha.php">🌳 वंश वृक्ष</a>
-    <a href="/pages/karyakram.php">📅 कार्यक्रम</a>
-    <a href="/pages/parivar_feed.php">📢 परिवार फ़ीड</a>
-    <a href="/pages/gotra_check.php">🔍 गोत्र जाँच</a>
-    <?php if (isMukhya()): ?>
-    <a href="/pages/settings.php">⚙️ सेटिंग्स</a>
-    <?php endif; ?>
-    <a href="/logout.php">🚪 लॉगआउट</a>
+<?php
+/**
+ * Navigation Bar — सभी pages में include करें
+ */
+requireLogin();
+$currentPage = basename($_SERVER['PHP_SELF'], '.php');
+?>
+<nav class="bottom-nav">
+    <a href="/parivar/pages/dashboard.php" class="nav-item <?= $currentPage==='dashboard'?'active':'' ?>">
+        <i class="ti ti-home"></i><span>मुख्य</span>
+    </a>
+    <a href="/parivar/pages/vansh_vriksha.php" class="nav-item <?= $currentPage==='vansh_vriksha'?'active':'' ?>">
+        <i class="ti ti-tree"></i><span>वंश</span>
+    </a>
+    <a href="/parivar/pages/karyakram.php" class="nav-item <?= $currentPage==='karyakram'?'active':'' ?>">
+        <i class="ti ti-calendar-event"></i><span>कार्यक्रम</span>
+    </a>
+    <a href="/parivar/pages/parivar_feed.php" class="nav-item <?= $currentPage==='parivar_feed'?'active':'' ?>">
+        <i class="ti ti-speakerphone"></i><span>फ़ीड</span>
+    </a>
+    <a href="/parivar/pages/settings.php" class="nav-item <?= $currentPage==='settings'?'active':'' ?>">
+        <i class="ti ti-settings"></i><span>सेटिंग्स</span>
+    </a>
 </nav>

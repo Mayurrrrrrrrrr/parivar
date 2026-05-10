@@ -80,3 +80,16 @@ function redirect($url) {
     header("Location: $url");
     exit;
 }
+/**
+ * त्रुटि संदेश (Error Messages)
+ */
+function getErrorMessage($code) {
+    $errors = [
+        'khaali_fields' => 'कृपया सभी जानकारी भरें।',
+        'galat_login' => 'गलत ईमेल या पासवर्ड।',
+        'banao_fail' => 'नया परिवार बनाने में त्रुटि हुई।',
+        'code_galat' => 'परिवार कोड अमान्य है।',
+        'csrf_fail' => 'सुरक्षा टोकन अमान्य है। कृपया पुनः प्रयास करें।'
+    ];
+    return $errors[$code] ?? 'कुछ गलत हुआ।';
+}

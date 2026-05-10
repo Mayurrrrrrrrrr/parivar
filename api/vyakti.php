@@ -58,7 +58,7 @@ switch ($action) {
         $stmt = $pdo->prepare("INSERT INTO vyakti (parivar_id, pratham_naam, madhya_naam, kul_naam, ling, janm_tithi_gregorian, janm_tithi_vs, gotra, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([$parivar_id, $pratham, $madhya, $kul, $ling, $gregorian, $vs, $gotra, $photo_url]);
         
-        header('Location: ../pages/dashboard.php?success=sadasy_joda');
+        header('Location: /parivar/pages/dashboard.php?success=sadasy_joda');
         exit;
 
     default:

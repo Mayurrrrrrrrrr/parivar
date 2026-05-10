@@ -12,24 +12,18 @@ requireLogin();
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>परिवार — प्रबंधन</title>
-    <link rel="stylesheet" href="/assets/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    
+    <!-- App Styles -->
+    <link rel="stylesheet" href="/parivar/assets/css/style.css">
 </head>
 <body>
-    <header>
-        <div class="container" style="display: flex; justify-content: space-between; align-items: center; padding: 0;">
-            <div style="text-align: left;">
-                <h1 style="font-size: 1.5rem; margin: 0;"><a href="/pages/dashboard.php" style="color: white;">परिवार</a></h1>
-            </div>
-            <div style="font-size: 0.9rem;">
-                <i class="fa fa-user"></i> <?php echo s(getUserName()); ?> | 
-                <a href="/logout.php" style="color: white; font-weight: normal;">लॉगआउट</a>
-            </div>
-        </div>
-    </header>
-
-    <?php require_once __DIR__ . '/nav.php'; ?>
-
-    <main class="container">

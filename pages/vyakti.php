@@ -1,6 +1,6 @@
 <?php
 /**
- * व्यक्ति प्रोफ़ाइल — विस्तार से जानकारी
+ * व्यक्ति प्रोफ़ाइल (v2.0)
  */
 require_once __DIR__ . '/../includes/header.php';
 requireLogin();
@@ -13,76 +13,86 @@ $stmt->execute([$id, $parivar_id]);
 $v = $stmt->fetch();
 
 if (!$v) {
-    echo "<div class='card'>व्यक्ति नहीं मिला।</div>";
-    require_once __DIR__ . '/../includes/footer.php';
+    echo "<div class='page-content'>व्यक्ति नहीं मिला।</div>";
+    include '../includes/nav.php';
     exit;
 }
 
-// संबंध प्राप्त करें
-$stmt = $pdo->prepare("
-    SELECT s.*, v.pratham_naam, v.kul_naam 
-    FROM sambandh s 
-    JOIN vyakti v ON s.vyakti_b_id = v.id 
-    WHERE s.vyakti_a_id = ?
-");
-$stmt->execute([$id]);
-$relations = $stmt->fetchAll();
+$initials = mb_substr($v['pratham_naam'], 0, 1);
 ?>
 
-<div class="card">
-    <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
-        <div style="width: 200px; height: 200px; border-radius: 50%; overflow: hidden; border: 5px solid var(--rang-pramukh);">
-            <?php if ($v['photo_url']): ?>
-                <img src="/<?php echo $v['photo_url']; ?>" style="width: 100%; height: 100%; object-fit: cover;">
-            <?php else: ?>
-                <div style="width: 100%; height: 100%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: #ccc;">
-                    <i class="fa fa-user"></i>
-                </div>
-            <?php endif; ?>
-        </div>
-        <div>
-            <h1 style="color: var(--rang-kaala); margin-bottom: 0.5rem;"><?php echo s($v['pratham_naam'] . ' ' . $v['kul_naam']); ?></h1>
-            <?php if ($v['upnaam']): ?><p>उपनाम: <strong><?php echo s($v['upnaam']); ?></strong></p><?php endif; ?>
-            <p>लिंग: <strong><?php echo $v['ling'] == 'purush' ? 'पुरुष' : ($v['ling'] == 'stri' ? 'स्त्री' : 'अन्य'); ?></strong></p>
-            <p>स्थिति: <span class="badge" style="background: <?php echo $v['jeevit'] ? 'var(--rang-safal)' : '#888'; ?>; color: white; padding: 0.2rem 0.5rem; border-radius: 4px;"><?php echo $v['jeevit'] ? 'जीवित' : 'दिवंगत'; ?></span></p>
-        </div>
+<header class="app-header">
+    <a href="dashboard.php" style="color:white"><i class="ti ti-arrow-left"></i></a>
+    <h1>प्रोफ़ाइल</h1>
+    <a href="sadasy_banao.php?id=<?php echo $id; ?>" style="color:white"><i class="ti ti-edit"></i></a>
+</header>
+
+<div class="profile-hero">
+    <?php if ($v['photo_url']): ?>
+        <img src="/parivar/<?php echo $v['photo_url']; ?>" class="avatar avatar-lg" style="object-fit: cover;">
+    <?php else: ?>
+        <div class="avatar avatar-lg avatar-saffron"><?php echo $initials; ?></div>
+    <?php endif; ?>
+    <div class="full-name"><?php echo s($v['pratham_naam'] . ' ' . ($v['madhya_naam'] ? $v['madhya_naam'] . ' ' : '') . $v['kul_naam']); ?></div>
+    <div class="upnaam"><?php echo s($v['upnaam'] ?: 'निकनेम नहीं'); ?></div>
+    <div style="margin-top: 8px;">
+        <span class="gotra-badge"><i class="ti ti-flame" style="font-size:12px"></i> गोत्र: <?php echo s($v['gotra'] ?: 'अज्ञात'); ?></span>
+        <span class="gotra-badge"><i class="ti ti-moon" style="font-size:12px"></i> नक्षत्र: <?php echo s($v['nakshatra'] ?: 'अज्ञात'); ?></span>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-    <div class="card">
-        <h3>जन्म एवं परिचय</h3>
-        <ul style="list-style: none; margin-top: 1rem;">
-            <li style="margin-bottom: 0.8rem;">📅 <strong>जन्म तिथि:</strong> <?php echo $v['janm_tithi_gregorian'] ? date('d F Y', strtotime($v['janm_tithi_gregorian'])) : 'अज्ञात'; ?></li>
-            <li style="margin-bottom: 0.8rem;">🌙 <strong>तिथि:</strong> <?php echo s($v['janm_tithi_vs'] ?: 'अज्ञात'); ?></li>
-            <li style="margin-bottom: 0.8rem;">🔱 <strong>गोत्र:</strong> <?php echo s($v['gotra'] ?: 'अज्ञात'); ?></li>
-            <li style="margin-bottom: 0.8rem;">✨ <strong>नक्षत्र:</strong> <?php echo s($v['nakshatra'] ?: 'अज्ञात'); ?></li>
-            <li style="margin-bottom: 0.8rem;">♈ <strong>राशि:</strong> <?php echo s($v['rashi'] ?: 'अज्ञात'); ?></li>
-        </ul>
-    </div>
-
-    <div class="card">
-        <h3>पारिवारिक संबंध</h3>
-        <div style="margin-top: 1rem;">
-            <?php if (empty($relations)): ?>
-                <p style="color: #888;">कोई संबंध दर्ज नहीं है।</p>
-            <?php else: ?>
-                <?php foreach ($relations as $r): ?>
-                    <div style="padding: 0.8rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
-                        <span><?php echo s($r['pratham_naam'] . ' ' . $r['kul_naam']); ?></span>
-                        <span style="color: var(--rang-pramukh); font-weight: 600;"><?php echo getRelationHindi($r['sambandh_prakar']); ?></span>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+<div class="page-content">
+    <!-- Birth info with dual date -->
+    <div class="event-card">
+        <div class="avatar avatar-sm avatar-saffron"><i class="ti ti-cake"></i></div>
+        <div class="dual-date">
+            <div class="greg">जन्म: <?php echo $v['janm_tithi_gregorian'] ? date('d F Y', strtotime($v['janm_tithi_gregorian'])) : 'अज्ञात'; ?></div>
+            <div class="vs"><?php echo s($v['janm_tithi_vs'] ?: 'विक्रम संवत् अज्ञात'); ?></div>
         </div>
     </div>
+
+    <?php if ($v['phone'] || $v['email']): ?>
+    <div class="section-header"><span class="section-title">📞 सम्पर्क जानकारी</span></div>
+    <div class="card" style="background:var(--bg-card); border-radius:12px; padding:12px; border:0.5px solid var(--seemant);">
+        <?php if ($v['phone']): ?>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <i class="ti ti-phone" style="color:var(--rang-pramukh)"></i>
+                <span style="font-size:14px"><?php echo s($v['phone']); ?></span>
+            </div>
+        <?php endif; ?>
+        <?php if ($v['email']): ?>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <i class="ti ti-mail" style="color:var(--rang-pramukh)"></i>
+                <span style="font-size:14px"><?php echo s($v['email']); ?></span>
+            </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- Family relationships -->
+    <div class="section-header"><span class="section-title">👨‍👩‍👧‍👦 परिवार के सदस्य</span></div>
+    <?php
+    $stmt = $pdo->prepare("SELECT s.*, v.pratham_naam, v.kul_naam, v.photo_url FROM sambandh s JOIN vyakti v ON s.vyakti_b_id = v.id WHERE s.vyakti_a_id = ?");
+    $stmt->execute([$id]);
+    $rels = $stmt->fetchAll();
+    foreach ($rels as $r): ?>
+        <a href="vyakti.php?id=<?php echo $r['vyakti_b_id']; ?>" class="person-card" style="margin-bottom:8px">
+            <div class="avatar avatar-sm avatar-teal"><?php echo mb_substr($r['pratham_naam'], 0, 1); ?></div>
+            <div class="person-info">
+                <div class="name"><?php echo s($r['pratham_naam'] . ' ' . $r['kul_naam']); ?></div>
+                <div class="meta"><?php echo getRelationHindi($r['sambandh_prakar']); ?></div>
+            </div>
+        </a>
+    <?php endforeach; ?>
+
+    <?php if ($v['jeevan_parichay']): ?>
+    <div class="section-header"><span class="section-title">📖 जीवन परिचय</span></div>
+    <div class="card" style="background:var(--bg-card); border-radius:12px; padding:14px; border:0.5px solid var(--seemant); font-size:14px; line-height:1.6;">
+        <?php echo nl2br(s($v['jeevan_parichay'])); ?>
+    </div>
+    <?php endif; ?>
+
 </div>
 
-<?php if ($v['jeevan_parichay']): ?>
-    <div class="card">
-        <h3>जीवन परिचय</h3>
-        <p style="margin-top: 1rem; white-space: pre-line;"><?php echo s($v['jeevan_parichay']); ?></p>
-    </div>
-<?php endif; ?>
-
+<?php include '../includes/nav.php'; ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -1,98 +1,62 @@
 <?php
 /**
- * गोत्र जाँच — सगोत्र विवाह निषेध हेतु उपकरण
+ * गोत्र मिलान जाँच (v2.0)
  */
 require_once __DIR__ . '/../includes/header.php';
 requireLogin();
 
 $parivar_id = currentParivarId();
-
-// व्यक्तियों की सूची
-$stmt = $pdo->prepare("SELECT id, pratham_naam, kul_naam, gotra FROM vyakti WHERE parivar_id = ? AND gotra IS NOT NULL AND gotra != ''");
-$stmt->execute([$parivar_id]);
-$persons = $stmt->fetchAll();
-
+$s1 = $_GET['s1'] ?? '';
+$s2 = $_GET['s2'] ?? '';
 $result = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $a_id = $_POST['vyakti_a'] ?? 0;
-    $b_id = $_POST['vyakti_b'] ?? 0;
-    
-    $stmt = $pdo->prepare("SELECT * FROM vyakti WHERE id = ?");
-    $stmt->execute([$a_id]);
-    $vA = $stmt->fetch();
-    
-    $stmt->execute([$b_id]);
-    $vB = $stmt->fetch();
-    
-    if ($vA && $vB) {
-        $same_gotra = (strtolower(trim($vA['gotra'])) === strtolower(trim($vB['gotra'])));
-        $result = [
-            'vA' => $vA,
-            'vB' => $vB,
-            'same' => $same_gotra
-        ];
+
+if ($s1 && $s2) {
+    if (trim(strtolower($s1)) === trim(strtolower($s2))) {
+        $result = ['safal' => false, 'sandesh' => 'सगोत्र विवाह वर्जित है। दोनों का गोत्र समान है।'];
+    } else {
+        $result = ['safal' => true, 'sandesh' => 'गोत्र भिन्न हैं। विवाह हेतु शास्त्रसम्मत है।'];
     }
 }
 ?>
 
-<div class="card">
-    <h2>गोत्र जाँच (Gotra Check)</h2>
-    <p style="color: #666; margin-bottom: 1.5rem;">दो व्यक्तियों के बीच सगोत्र (समान गोत्र) की जाँच करें।</p>
+<header class="app-header">
+    <a href="settings.php" style="color:white"><i class="ti ti-arrow-left"></i></a>
+    <h1>🛡️ गोत्र जाँच</h1>
+</header>
 
-    <form method="POST" class="card" style="background: #f9f9f9;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+<div class="page-content">
+    
+    <div class="card" style="background:var(--bg-card); border-radius:16px; padding:20px; box-shadow:var(--shadow-floating); border:0.5px solid var(--seemant);">
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px; line-height:1.6;">
+            सनातन धर्म के अनुसार सगोत्र विवाह वर्जित माना गया है। यहाँ आप दो व्यक्तियों के गोत्र का मिलान कर सकते हैं।
+        </p>
+
+        <form action="gotra_check.php" method="GET">
             <div class="form-group">
-                <label>प्रथम व्यक्ति</label>
-                <select name="vyakti_a" required>
-                    <option value="">— चुनें —</option>
-                    <?php foreach ($persons as $p): ?>
-                        <option value="<?php echo $p['id']; ?>"><?php echo s($p['pratham_naam'] . ' (' . $p['gotra'] . ')'); ?></option>
-                    <?php endforeach; ?>
-                </select>
+                <label>प्रथम पक्ष का गोत्र</label>
+                <input type="text" name="s1" class="form-control" value="<?php echo s($s1); ?>" placeholder="जैसे: भरद्वाज" required>
             </div>
             <div class="form-group">
-                <label>द्वितीय व्यक्ति</label>
-                <select name="vyakti_b" required>
-                    <option value="">— चुनें —</option>
-                    <?php foreach ($persons as $p): ?>
-                        <option value="<?php echo $p['id']; ?>"><?php echo s($p['pratham_naam'] . ' (' . $p['gotra'] . ')'); ?></option>
-                    <?php endforeach; ?>
-                </select>
+                <label>द्वितीय पक्ष का गोत्र</label>
+                <input type="text" name="s2" class="form-control" value="<?php echo s($s2); ?>" placeholder="जैसे: शांडिल्य" required>
             </div>
-        </div>
-        <button type="submit">जाँच करें</button>
-    </form>
+            <button type="submit" class="btn btn-primary mt-1">जाँच करें</button>
+        </form>
 
-    <?php if ($result): ?>
-        <div class="card" style="margin-top: 2rem; text-align: center; border-width: 2px; border-color: <?php echo $result['same'] ? 'var(--rang-asafal)' : 'var(--rang-safal)'; ?>;">
-            <h3>जाँच परिणाम</h3>
-            <div style="display: flex; justify-content: space-around; align-items: center; margin: 1.5rem 0;">
-                <div>
-                    <strong style="font-size: 1.2rem;"><?php echo s($result['vA']['pratham_naam']); ?></strong><br>
-                    गोत्र: <span style="color: var(--rang-pramukh);"><?php echo s($result['vA']['gotra']); ?></span>
-                </div>
-                <div style="font-size: 2rem;">↔</div>
-                <div>
-                    <strong style="font-size: 1.2rem;"><?php echo s($result['vB']['pratham_naam']); ?></strong><br>
-                    गोत्र: <span style="color: var(--rang-pramukh);"><?php echo s($result['vB']['gotra']); ?></span>
-                </div>
+        <?php if ($result): ?>
+            <div class="alert <?php echo $result['safal'] ? 'alert-success' : 'alert-danger'; ?> mt-2" style="text-align:center;">
+                <i class="ti <?php echo $result['safal'] ? 'ti-check' : 'ti-x'; ?>" style="font-size:24px; display:block; margin-bottom:8px;"></i>
+                <div style="font-weight:600; font-size:15px;"><?php echo s($result['sandesh']); ?></div>
             </div>
+        <?php endif; ?>
+    </div>
 
-            <?php if ($result['same']): ?>
-                <div style="background: #fff5f5; color: var(--rang-asafal); padding: 1rem; border-radius: 8px;">
-                    <i class="fa fa-times-circle" style="font-size: 2rem;"></i><br>
-                    <strong>सगोत्र (समान गोत्र) पाया गया!</strong><br>
-                    शास्त्रीय परंपरा के अनुसार सगोत्र विवाह वर्जित माना जाता है।
-                </div>
-            <?php else: ?>
-                <div style="background: #f5fff5; color: var(--rang-safal); padding: 1rem; border-radius: 8px;">
-                    <i class="fa fa-check-circle" style="font-size: 2rem;"></i><br>
-                    <strong>भिन्न गोत्र!</strong><br>
-                    दोनों व्यक्तियों का गोत्र अलग है।
-                </div>
-            <?php endif; ?>
-        </div>
-    <?php endif; ?>
+    <div class="section-header"><span class="section-title">💡 जानकारी</span></div>
+    <div class="card" style="background:var(--bg-secondary); border-radius:12px; padding:14px; font-size:12px; color:var(--text-secondary); line-height:1.5;">
+        "गोत्र" उस ऋषि के नाम को दर्शाता है जिनसे कुल की उत्पत्ति हुई है। एक ही गोत्र होने का अर्थ है कि दोनों एक ही पूर्वज की संतानें हैं।
+    </div>
+
 </div>
 
+<?php include '../includes/nav.php'; ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

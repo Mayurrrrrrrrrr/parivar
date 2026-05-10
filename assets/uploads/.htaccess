@@ -1,0 +1,3 @@
+# PHP execution बंद — security
+php_flag engine off
+Options -Indexes

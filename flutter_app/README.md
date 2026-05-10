@@ -1,8 +1,4 @@
-# परिवार मोबाइल ऐप (Flutter Wrap)
-
-यह फोल्डर मोबाइल एप्लीकेशन के लिए आरक्षित है।
-
-## निर्देश
-1. यह ऐप `WebView` का उपयोग करके परिवार पोर्टल को प्रदर्शित करेगा।
-2. नेटिव फीचर्स जैसे साझा करना (Sharing), नोटिफिकेशन (Notifications), और ऑफलाइन डेटा भविष्य में जोड़े जाएंगे।
-3. API का उपयोग `api_docs.md` के अनुसार करें।
+# परिवार Flutter App
+Phase 3 में बनेगा। API endpoints: /parivar/api/ पर उपलब्ध हैं।
+Base URL: http://localhost/parivar/api/
+Auth: Bearer token (api/auth.php से मिलेगा)
