@@ -51,6 +51,7 @@ switch ($action) {
         $gotra = $_POST['gotra'] ?? '';
         $pita_id = $_POST['pita_id'] ?? null;
         $mata_id = $_POST['mata_id'] ?? null;
+        $sibling_ids = $_POST['sibling_ids'] ?? [];
         
         $photo_url = null;
         if (!empty($_FILES['photo']['name'])) {
@@ -64,27 +65,52 @@ switch ($action) {
             $stmt->execute([$parivar_id, $pratham, $madhya, $kul, $ling, $gregorian, $vs, $gotra, $photo_url]);
             $new_person_id = $pdo->lastInsertId();
 
-            // Auto-build Relations
+            // 1. Inherit Parents from Siblings if not set
+            if ((!$pita_id || !$mata_id) && !empty($sibling_ids)) {
+                foreach ($sibling_ids as $sid) {
+                    if (!$pita_id) {
+                        $st = $pdo->prepare("SELECT vyakti_a_id FROM sambandh WHERE vyakti_b_id = ? AND sambandh_prakar = 'pita' LIMIT 1");
+                        $st->execute([$sid]);
+                        $inherited_pita = $st->fetchColumn();
+                        if ($inherited_pita) $pita_id = $inherited_pita;
+                    }
+                    if (!$mata_id) {
+                        $st = $pdo->prepare("SELECT vyakti_a_id FROM sambandh WHERE vyakti_b_id = ? AND sambandh_prakar = 'mata' LIMIT 1");
+                        $st->execute([$sid]);
+                        $inherited_mata = $st->fetchColumn();
+                        if ($inherited_mata) $mata_id = $inherited_mata;
+                    }
+                    if ($pita_id && $mata_id) break;
+                }
+            }
+
+            // 2. Build Parent Relations
             if ($pita_id) {
-                // A (pita) -> B (putra/putri)
-                $stmt = $pdo->prepare("INSERT INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, 'pita')");
-                $stmt->execute([$pita_id, $new_person_id]);
-                
-                // B -> A
+                $pdo->prepare("INSERT INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, 'pita')")->execute([$pita_id, $new_person_id]);
                 $prakar = ($ling === 'stri') ? 'putri' : 'putra';
-                $stmt = $pdo->prepare("INSERT INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)");
-                $stmt->execute([$new_person_id, $pita_id, $prakar]);
+                $pdo->prepare("INSERT INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)")->execute([$new_person_id, $pita_id, $prakar]);
             }
 
             if ($mata_id) {
-                // A (mata) -> B (putra/putri)
-                $stmt = $pdo->prepare("INSERT INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, 'mata')");
-                $stmt->execute([$mata_id, $new_person_id]);
-                
-                // B -> A
+                $pdo->prepare("INSERT INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, 'mata')")->execute([$mata_id, $new_person_id]);
                 $prakar = ($ling === 'stri') ? 'putri' : 'putra';
-                $stmt = $pdo->prepare("INSERT INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)");
-                $stmt->execute([$new_person_id, $mata_id, $prakar]);
+                $pdo->prepare("INSERT INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)")->execute([$new_person_id, $mata_id, $prakar]);
+            }
+
+            // 3. Build Sibling Relations
+            foreach ($sibling_ids as $sid) {
+                // Determine sibling type based on gender
+                $stmt_s = $pdo->prepare("SELECT ling FROM vyakti WHERE id = ?");
+                $stmt_s->execute([$sid]);
+                $s_ling = $stmt_s->fetchColumn();
+
+                // Sid is brother/sister of New
+                $prakar_sid_to_new = ($s_ling === 'stri') ? 'behen' : 'bhai';
+                $pdo->prepare("INSERT IGNORE INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)")->execute([$sid, $new_person_id, $prakar_sid_to_new]);
+
+                // New is brother/sister of Sid
+                $prakar_new_to_sid = ($ling === 'stri') ? 'behen' : 'bhai';
+                $pdo->prepare("INSERT IGNORE INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)")->execute([$new_person_id, $sid, $prakar_new_to_sid]);
             }
 
             $pdo->commit();

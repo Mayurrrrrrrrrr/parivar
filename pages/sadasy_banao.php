@@ -79,6 +79,15 @@ $parivar_id = getParivarId();
                     <?php endforeach; ?>
                 </select>
             </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label>भाई / बहन (पोर्टल पर मौजूद सदस्यों को चुनें)</label>
+                <select name="sibling_ids[]" class="form-control" multiple style="height: 100px;">
+                    <?php foreach ($all_members as $m): ?>
+                        <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small style="color:var(--text-muted)">Ctrl दबाकर एक से अधिक चुन सकते हैं। इनसे जुड़ने पर माता-पिता की जानकारी स्वतः जुड़ जाएगी।</small>
+            </div>
         </div>
 
         <div style="margin-top: 1.5rem;">
