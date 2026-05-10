@@ -36,7 +36,7 @@ $family_code = $parivar['parivar_code'];
 
     <!-- User Info -->
     <div class="section-header"><span class="section-title">👤 मेरी जानकारी</span></div>
-    <div class="card" style="background:var(--bg-card); border-radius:12px; padding:16px; border:0.5px solid var(--seemant);">
+    <div class="card" style="background:var(--bg-card); border-radius:12px; padding:16px; border:0.5px solid var(--seemant); margin-bottom:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <span style="font-size:14px; color:var(--text-secondary)">नाम</span>
             <span style="font-size:14px; font-weight:500"><?php echo s($_SESSION['naam']); ?></span>
@@ -46,6 +46,21 @@ $family_code = $parivar['parivar_code'];
             <span class="countdown-chip chip-soon" style="font-size:11px"><?php echo s($_SESSION['bhumika'] === 'mukhya' ? 'मुख्य सदस्य' : 'सदस्य'); ?></span>
         </div>
     </div>
+
+    <?php if (isMukhya()): ?>
+    <!-- Family Edit (Mukhya Only) -->
+    <div class="section-header"><span class="section-title">🏠 परिवार सेटिंग्स</span></div>
+    <div class="card" style="background:var(--bg-card); border-radius:12px; padding:16px; border:0.5px solid var(--seemant);">
+        <form action="/parivar/api/family.php?action=update" method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+            <div class="form-group">
+                <label>परिवार का नाम</label>
+                <input type="text" name="parivar_naam" class="form-control hindi-type" value="<?php echo s($parivar['parivar_naam']); ?>" required>
+            </div>
+            <button type="submit" class="btn btn-secondary" style="padding:8px 16px; font-size:12px; width:auto;">अपडेट करें</button>
+        </form>
+    </div>
+    <?php endif; ?>
 
     <!-- Actions -->
     <div class="section-header"><span class="section-title">🛠️ अन्य</span></div>
