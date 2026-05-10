@@ -1,125 +1,155 @@
 <?php
 /**
- * डैशबोर्ड — मुख्य पृष्ठ (v2.0)
+ * मुख्य डैशबोर्ड (v2.0)
  */
 require_once __DIR__ . '/../includes/header.php';
 requireLogin();
 
 $parivar_id = currentParivarId();
-$today = gregorianToVS((int)date('d'), (int)date('m'), (int)date('Y'));
 
 // Stats
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM vyakti WHERE parivar_id = ?");
 $stmt->execute([$parivar_id]);
-$member_count = $stmt->fetchColumn();
+$total_members = $stmt->fetchColumn();
 
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM karyakram WHERE parivar_id = ? AND MONTH(tithi_gregorian) = MONTH(CURDATE())");
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM karyakram WHERE parivar_id = ? AND tithi_gregorian >= CURDATE() AND tithi_gregorian <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)");
 $stmt->execute([$parivar_id]);
-$month_event_count = $stmt->fetchColumn();
+$month_events = $stmt->fetchColumn();
 
-// Today's events
-$stmt = $pdo->prepare("SELECT k.*, v.pratham_naam, v.kul_naam FROM karyakram k LEFT JOIN vyakti v ON k.vyakti_id = v.id WHERE k.parivar_id = ? AND k.tithi_gregorian = CURDATE()");
+// Upcoming
+$stmt = $pdo->prepare("SELECT * FROM karyakram WHERE parivar_id = ? AND tithi_gregorian >= CURDATE() ORDER BY tithi_gregorian ASC LIMIT 3");
 $stmt->execute([$parivar_id]);
-$today_events = $stmt->fetchAll();
+$upcoming = $stmt->fetchAll();
 
-// Countdown Banner (Next 3 days)
-$stmt = $pdo->prepare("
-    SELECT k.*, v.pratham_naam, v.kul_naam, DATEDIFF(tithi_gregorian, CURDATE()) as days_left 
-    FROM karyakram k 
-    LEFT JOIN vyakti v ON k.vyakti_id = v.id 
-    WHERE k.parivar_id = ? 
-    AND tithi_gregorian BETWEEN DATE_ADD(CURDATE(), INTERVAL 1 DAY) AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)
-    ORDER BY tithi_gregorian LIMIT 1
-");
-$stmt->execute([$parivar_id]);
-$countdown_event = $stmt->fetch();
+// Panchang Info (Today)
+$today = date('Y-m-d');
+$panchang_data = [];
+$ch = curl_init("https://parivar.yuktaa.com/api/panchang.php?action=convert&gregorian=$today");
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$res = curl_exec($ch);
+if ($res) {
+    $pj = json_decode($res, true);
+    if ($pj && $pj['safalta']) $panchang_data = $pj['data'];
+}
+curl_close($ch);
 ?>
 
 <header class="app-header">
-    <h1>🏡 परिवार</h1>
-    <div class="user-chip"><i class="ti ti-user" style="font-size:14px"></i> <?php echo s(getUserName()); ?></div>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <div class="avatar avatar-saffron">प</div>
+        <h1 style="font-size: 1.2rem;">नमस्ते, <?php echo s($_SESSION['naam']); ?></h1>
+    </div>
+    <a href="/pages/settings.php" style="color:var(--text-main); font-size:22px;"><i class="ti ti-settings-2"></i></a>
 </header>
 
 <div class="page-content">
 
-    <!-- Countdown Banner -->
-    <?php if ($countdown_event): ?>
-    <div style="background:#FAEEDA;border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:20px"><?php echo getEventIcon($countdown_event['prakar']); ?></span>
-        <div>
-            <div style="font-size:13px;font-weight:500;color:#854F0B">
-                <?php echo s($countdown_event['pratham_naam'] ?: $countdown_event['shirshak']); ?> का जन्मदिन <?php echo $countdown_event['days_left']; ?> दिन में है!
+    <!-- Hero Card -->
+    <div class="card" style="background: linear-gradient(135deg, var(--rang-pramukh), #FF9F1C); border: none; color: white; position: relative; overflow: hidden; padding: 24px;">
+        <div style="position: relative; z-index: 2;">
+            <p style="font-size: 12px; font-weight: 600; opacity: 0.8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">आज की तिथि</p>
+            <h2 style="color:white; font-size: 24px; margin-bottom: 8px;" class="devanagari">
+                <?php echo $panchang_data['formatted'] ?? 'तिथि लोड हो रही है...'; ?>
+            </h2>
+            <div style="display: flex; gap: 15px; font-size: 13px; opacity: 0.9; font-weight: 500;">
+                <span>🌞 <?php echo date('d M Y'); ?></span>
+                <span>✨ <?php echo $panchang_data['nakshatra'] ?? 'नक्षत्र...'; ?></span>
             </div>
-            <div style="font-size:11px;color:#9C7A6A"><?php echo s($countdown_event['tithi_vs']); ?> | <?php echo date('d M', strtotime($countdown_event['tithi_gregorian'])); ?></div>
         </div>
-        <?php 
-            $msg = urlencode("🙏 " . ($countdown_event['pratham_naam'] ?: $countdown_event['shirshak']) . " का जन्मदिन " . date('d M', strtotime($countdown_event['tithi_gregorian'])) . " (" . $countdown_event['tithi_vs'] . ") को है। परिवार की ओर से हार्दिक शुभकामनाएँ! 🎂");
-            $wa_url = "https://wa.me/?text={$msg}";
-        ?>
-        <a href="<?php echo $wa_url; ?>" style="margin-left:auto;font-size:20px" target="_blank">📱</a>
-    </div>
-    <?php endif; ?>
-
-    <!-- Panchang Hero -->
-    <div class="panchang-card">
-        <div class="greg-date"><?php echo date('d F Y'); ?></div>
-        <div class="vs-date"><?php echo $today['formatted']; ?></div>
-        <div class="nakshatra">नक्षत्र: <?php echo $today['nakshatra']; ?></div>
+        <i class="ti ti-sun" style="position: absolute; right: -20px; top: -20px; font-size: 120px; color: rgba(255,255,255,0.1);"></i>
     </div>
 
-    <!-- Stats row -->
-    <div class="cards-grid">
-        <div class="stat-card"><div class="stat-number"><?php echo $member_count; ?></div><div class="stat-label">परिवार सदस्य</div></div>
-        <div class="stat-card"><div class="stat-number"><?php echo $month_event_count; ?></div><div class="stat-label">इस माह कार्यक्रम</div></div>
+    <!-- Quick Stats Row -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+        <div class="card" style="margin-bottom: 0; padding: 16px; display: flex; align-items: center; gap: 12px;">
+            <div class="avatar avatar-sm avatar-purple"><i class="ti ti-users"></i></div>
+            <div>
+                <div style="font-size: 18px; font-weight: 800;"><?php echo $total_members; ?></div>
+                <div style="font-size: 11px; font-weight: 600; color: var(--text-muted);">कुल सदस्य</div>
+            </div>
+        </div>
+        <div class="card" style="margin-bottom: 0; padding: 16px; display: flex; align-items: center; gap: 12px;">
+            <div class="avatar avatar-sm avatar-teal"><i class="ti ti-calendar-event"></i></div>
+            <div>
+                <div style="font-size: 18px; font-weight: 800;"><?php echo $month_events; ?></div>
+                <div style="font-size: 11px; font-weight: 600; color: var(--text-muted);">इस माह कार्यक्रम</div>
+            </div>
+        </div>
     </div>
 
-    <!-- Today's events -->
-    <div class="section-header"><span class="section-title">🎉 आज के कार्यक्रम</span></div>
-    <?php if (empty($today_events)): ?>
-        <p class="text-muted text-center" style="padding: 1rem; background: var(--bg-card); border-radius: 12px;">आज कोई विशेष कार्यक्रम नहीं है।</p>
+    <!-- Modern Action Grid -->
+    <div class="section-header">
+        <span class="section-title">त्वरित लिंक</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;">
+        <a href="/pages/sadasy_banao.php" style="text-decoration: none; text-align: center;">
+            <div class="card" style="margin-bottom: 8px; padding: 12px; background: #FFF5F2; border-color: #FFE5D9; box-shadow: none;">
+                <i class="ti ti-user-plus" style="font-size: 24px; color: var(--rang-pramukh);"></i>
+            </div>
+            <span style="font-size: 10px; font-weight: 700; color: var(--text-secondary);">नया सदस्य</span>
+        </a>
+        <a href="/pages/vansh_vriksha.php" style="text-decoration: none; text-align: center;">
+            <div class="card" style="margin-bottom: 8px; padding: 12px; background: #F5F3FF; border-color: #EDE9FE; box-shadow: none;">
+                <i class="ti ti-hierarchy-2" style="font-size: 24px; color: #7C3AED;"></i>
+            </div>
+            <span style="font-size: 10px; font-weight: 700; color: var(--text-secondary);">वंश वृक्ष</span>
+        </a>
+        <a href="/pages/karyakram.php" style="text-decoration: none; text-align: center;">
+            <div class="card" style="margin-bottom: 8px; padding: 12px; background: #F0FDF4; border-color: #DCFCE7; box-shadow: none;">
+                <i class="ti ti-calendar-star" style="font-size: 24px; color: #16A34A;"></i>
+            </div>
+            <span style="font-size: 10px; font-weight: 700; color: var(--text-secondary);">कार्यक्रम</span>
+        </a>
+        <a href="/pages/parivar_feed.php" style="text-decoration: none; text-align: center;">
+            <div class="card" style="margin-bottom: 8px; padding: 12px; background: #FEF2F2; border-color: #FEE2E2; box-shadow: none;">
+                <i class="ti ti-message-2-share" style="font-size: 24px; color: #DC2626;"></i>
+            </div>
+            <span style="font-size: 10px; font-weight: 700; color: var(--text-secondary);">फ़ीड</span>
+        </a>
+    </div>
+
+    <!-- Upcoming Events Section -->
+    <div class="section-header">
+        <span class="section-title">आगामी कार्यक्रम</span>
+        <a href="/pages/karyakram.php" style="font-size: 12px; font-weight: 600; color: var(--rang-pramukh); text-decoration: none;">सभी देखें</a>
+    </div>
+
+    <?php if (empty($upcoming)): ?>
+        <div class="card" style="text-align: center; padding: 40px 20px; border-style: dashed; background: transparent;">
+            <i class="ti ti-calendar-off" style="font-size: 48px; color: var(--text-muted); opacity: 0.3; margin-bottom: 12px; display: block;"></i>
+            <p style="color: var(--text-muted); font-size: 14px;">फिलहाल कोई आगामी कार्यक्रम नहीं है।</p>
+        </div>
     <?php else: ?>
-        <?php foreach ($today_events as $e): ?>
-            <a href="vyakti.php?id=<?php echo $e['vyakti_id']; ?>" class="event-card">
-                <div class="avatar avatar-saffron"><?php echo mb_substr($e['pratham_naam'] ?: 'P', 0, 1); ?></div>
-                <div class="dual-date">
-                    <div class="greg"><?php echo s($e['shirshak']); ?></div>
-                    <div class="vs"><?php echo s($e['tithi_vs']); ?></div>
+        <?php foreach ($upcoming as $e): ?>
+            <div class="event-card">
+                <div class="avatar avatar-saffron"><?php echo getEventIcon($e['prakar']); ?></div>
+                <div style="flex:1">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--text-main);"><?php echo s($e['shirshak']); ?></div>
+                    <div class="vs-pill"><?php echo s($e['tithi_vs']); ?></div>
                 </div>
-                <span class="countdown-chip chip-today">आज</span>
-            </a>
+                <div style="text-align: right;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-main);"><?php echo date('d M', strtotime($e['tithi_gregorian'])); ?></div>
+                    <div style="font-size: 10px; color: var(--text-muted);"><?php echo date('Y', strtotime($e['tithi_gregorian'])); ?></div>
+                </div>
+            </div>
         <?php endforeach; ?>
     <?php endif; ?>
 
-    <!-- Recent Posts -->
-    <div class="section-header">
-        <span class="section-title">📢 परिवार फ़ीड</span>
-        <a href="parivar_feed.php" class="section-link">सभी देखें</a>
-    </div>
-    <?php
-    $stmt = $pdo->prepare("SELECT f.*, u.naam as user_naam FROM parivar_feed f JOIN users u ON f.user_id = u.id WHERE f.parivar_id = ? ORDER BY f.banaya_at DESC LIMIT 2");
-    $stmt->execute([$parivar_id]);
-    $feeds = $stmt->fetchAll();
-    foreach ($feeds as $f): ?>
-        <div class="feed-card">
-            <div class="feed-card-header">
-                <div class="avatar avatar-sm avatar-purple"><?php echo mb_substr($f['user_naam'], 0, 1); ?></div>
-                <div>
-                    <div style="font-size:13px;font-weight:500"><?php echo s($f['user_naam']); ?></div>
-                    <div style="font-size:10px;color:var(--text-muted)"><?php echo time_ago($f['banaya_at']); ?></div>
-                </div>
+    <!-- Senior Safety Check -->
+    <div class="card" style="margin-top: 32px; background: #FFF1F2; border: 1.5px solid #FDA4AF;">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <div style="font-size: 32px;">👵</div>
+            <div style="flex:1">
+                <h3 style="font-size: 15px; color: #9F1239;">आपातकालीन सहायता</h3>
+                <p style="font-size: 12px; color: #BE123C; opacity: 0.8;">किसी भी समस्या के लिए परिवार प्रमुख को तुरंत संपर्क करें।</p>
             </div>
-            <div class="feed-card-body"><?php echo nl2br(s($f['sandesh'])); ?></div>
-            <?php if ($f['photo_url']): ?>
-                <img src="/parivar/<?php echo $f['photo_url']; ?>" class="feed-card-photo">
-            <?php endif; ?>
+            <a href="tel:919999999999" class="btn btn-primary" style="width: auto; background: #E11D48; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3); padding: 8px 16px;">
+                <i class="ti ti-phone"></i>
+            </a>
         </div>
-    <?php endforeach; ?>
+    </div>
 
 </div>
 
-<!-- FAB -->
-<a href="karyakram.php?action=new" class="fab"><i class="ti ti-plus"></i></a>
-
-<!-- Bottom Nav -->
 <?php include '../includes/nav.php'; ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
