@@ -1,66 +1,82 @@
 <?php
 /**
- * सहायक कार्य (Helpers) — सामान्य उपयोग के फंक्शन्स
+ * सहायक कार्य (Helpers) — परिवार पोर्टल
  */
 
 /**
- * अंग्रेजी अंकों को हिंदी अंकों में बदलें
+ * XSS सुरक्षा
  */
-function toHindiNumerals($number) {
-    $hindi_numerals = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
-    $str = (string)$number;
-    $res = '';
-    for ($i = 0; $i < strlen($str); $i++) {
-        $char = $str[$i];
-        if (is_numeric($char)) {
-            $res .= $hindi_numerals[$char];
-        } else {
-            $res .= $char;
-        }
-    }
-    return $res;
+function s($text) {
+    return htmlspecialchars($text ?? '', ENT_QUOTES, 'UTF-8');
 }
 
 /**
- * ग्रेगोरियन तारीख को हिंदी में दिखाएं (जैसे: १० मई २०२४)
+ * यूजर का नाम प्राप्त करें
  */
-function formatGregorianHindi($date) {
-    if (!$date) return '-';
-    $ts = strtotime($date);
-    $months = [
-        1 => 'जनवरी', 2 => 'फ़रवरी', 3 => 'मार्च', 4 => 'अप्रैल',
-        5 => 'मई', 6 => 'जून', 7 => 'जुलाई', 8 => 'अगस्त',
-        9 => 'सितंबर', 10 => 'अक्टूबर', 11 => 'नवंबर', 12 => 'दिसंबर'
+function getUserName() {
+    return $_SESSION['naam'] ?? 'यूजर';
+}
+
+/**
+ * परिवार आईडी (Shortcut)
+ */
+function getParivarId() {
+    return $_SESSION['parivar_id'] ?? 0;
+}
+
+/**
+ * समय अंतराल (Time Ago)
+ */
+function time_ago($timestamp) {
+    $time = is_numeric($timestamp) ? $timestamp : strtotime($timestamp);
+    $diff = time() - $time;
+    
+    if ($diff < 60) return 'अभी';
+    if ($diff < 3600) return round($diff/60) . ' मिनट पहले';
+    if ($diff < 86400) return round($diff/3600) . ' घंटे पहले';
+    if ($diff < 2592000) return round($diff/86400) . ' दिन पहले';
+    
+    return date('d M Y', $time);
+}
+
+/**
+ * कार्यक्रम का आइकन
+ */
+function getEventIcon($type) {
+    $icons = [
+        'janmdin' => '🎂',
+        'vivah_varshgaanth' => '💍',
+        'punya_tithi' => '🙏',
+        'puja' => '✨',
+        'utsav' => '🚩',
+        'any' => '📅'
     ];
-    $day = date('j', $ts);
-    $month = $months[(int)date('n', $ts)];
-    $year = date('Y', $ts);
-    return toHindiNumerals($day) . ' ' . $month . ' ' . toHindiNumerals($year);
+    return $icons[$type] ?? '📅';
 }
 
 /**
- * इनपुट को सुरक्षित करें
+ * संबंधों का हिंदी नाम
  */
-function s($data) {
-    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+function getRelationHindi($type) {
+    $relations = [
+        'pita' => 'पिता',
+        'mata' => 'माता',
+        'pati' => 'पति',
+        'patni' => 'पत्नी',
+        'bhai' => 'भाई',
+        'behen' => 'बहन',
+        'putra' => 'पुत्र',
+        'putri' => 'पुत्री',
+        'datta_putra' => 'दत्तक पुत्र',
+        'datta_putri' => 'दत्तक पुत्री'
+    ];
+    return $relations[$type] ?? $type;
 }
 
 /**
- * JSON रिस्पॉन्स भेजें
+ * रीडायरेक्ट
  */
-function sendJson($data, $success = true, $message = '') {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'safalta' => $success,
-        'data' => $data,
-        'sandesh' => $message
-    ]);
+function redirect($url) {
+    header("Location: $url");
     exit;
-}
-
-/**
- * रैंडम कोड जेनरेट करें (परिवार कोड के लिए)
- */
-function generateFamilyCode($length = 6) {
-    return strtoupper(substr(str_shuffle("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, $length));
 }

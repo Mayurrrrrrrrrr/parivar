@@ -1,71 +1,65 @@
 <?php
 /**
- * परिवार फ़ीड — साझा संदेश और यादें
+ * परिवार फ़ीड — संदेश एवं फोटो साझा करें
  */
 require_once __DIR__ . '/../includes/header.php';
+requireLogin();
+
+$parivar_id = currentParivarId();
+
+// फ़ीड प्राप्त करें
+$stmt = $pdo->prepare("SELECT f.*, u.naam as user_naam FROM parivar_feed f JOIN users u ON f.user_id = u.id WHERE f.parivar_id = ? ORDER BY f.banaya_at DESC");
+$stmt->execute([$parivar_id]);
+$feeds = $stmt->fetchAll();
 ?>
 
-<div class="card" style="border-color: var(--rang-pramukh);">
-    <h3>साझा करें</h3>
-    <form action="/api/feed.php?action=post" method="POST" enctype="multipart/form-data">
+<div class="card">
+    <h3>नया संदेश साझा करें</h3>
+    <form action="/api/feed.php?action=banao" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
         <div class="form-group">
-            <textarea name="sandesh" required placeholder="परिवार के साथ कुछ साझा करें..." style="height: 100px; resize: none;"></textarea>
+            <textarea name="sandesh" rows="3" placeholder="आज क्या खास है? यहाँ लिखें..." required></textarea>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label style="display: inline-block; cursor: pointer; color: var(--rang-pramukh); margin-bottom: 0;">
-                    <i class="fa fa-image"></i> फोटो चुनें
-                    <input type="file" name="photo" accept="image/*" style="display: none;">
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <div style="flex: 1;">
+                <input type="file" name="photo" accept="image/*" id="feed-photo" style="display: none;" onchange="updateFileName()">
+                <label for="feed-photo" style="cursor: pointer; background: #eee; padding: 0.5rem 1rem; border-radius: 4px; display: inline-block;">
+                    <i class="fa fa-camera"></i> फोटो जोड़ें
                 </label>
+                <span id="file-name" style="font-size: 0.8rem; color: #666;"></span>
             </div>
-            <button type="submit" style="width: auto;">पोस्ट करें</button>
+            <button type="submit" style="width: auto;">साझा करें</button>
         </div>
     </form>
 </div>
 
-<div id="full-feed">
-    <p style="text-align: center; padding: 2rem;">लोड हो रहा है...</p>
+<div class="container" style="max-width: 800px; padding: 0;">
+    <?php foreach ($feeds as $f): ?>
+        <div class="card feed-item">
+            <div class="feed-header">
+                <div class="feed-avatar"><?php echo mb_substr($f['user_naam'], 0, 1); ?></div>
+                <div>
+                    <strong><?php echo s($f['user_naam']); ?></strong><br>
+                    <small style="color: #888;"><?php echo time_ago($f['banaya_at']); ?></small>
+                </div>
+            </div>
+            <div class="feed-content" style="margin-top: 1rem;">
+                <p style="white-space: pre-line;"><?php echo s($f['sandesh']); ?></p>
+                <?php if ($f['photo_url']): ?>
+                    <img src="/<?php echo $f['photo_url']; ?>" style="max-width: 100%; border-radius: 8px; margin-top: 1rem; box-shadow: var(--rang-chhaya);">
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endforeach; ?>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        loadFeed();
-    });
-
-    function loadFeed() {
-        fetch('/api/feed.php?action=list')
-            .then(r => r.json())
-            .then(res => {
-                const container = document.getElementById('full-feed');
-                if (res.safalta && res.data.length > 0) {
-                    container.innerHTML = res.data.map(p => `
-                        <div class="card feed-post">
-                            <div style="display: flex; justify-content: space-between;">
-                                <div class="feed-meta">
-                                    <strong style="color: var(--rang-uprang); font-size: 1.1rem;">${p.user_naam}</strong><br>
-                                    <span>${p.banaya_at}</span>
-                                </div>
-                                ${p.user_id == <?php echo $_SESSION['user_id']; ?> ? `<button onclick="deletePost(${p.id})" style="background: none; color: #ccc; width: auto; padding: 0; font-size: 0.8rem;"><i class="fa fa-trash"></i></button>` : ''}
-                            </div>
-                            ${p.photo_url ? `<div style="margin-top: 1rem;"><img src="${p.photo_url}" style="width: 100%; border-radius: 8px; max-height: 400px; object-fit: cover;"></div>` : ''}
-                            <div style="margin-top: 1rem; font-size: 1.1rem; color: var(--rang-path);">${p.sandesh}</div>
-                        </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = '<div class="card" style="text-align: center;">अभी तक कोई पोस्ट नहीं है। अपनी पहली याद साझा करें!</div>';
-                }
-            });
-    }
-
-    function deletePost(id) {
-        if (!confirm('क्या आप यह पोस्ट हटाना चाहते हैं?')) return;
-        fetch(`/api/feed.php?action=delete&id=${id}`, { method: 'POST' })
-            .then(r => r.json())
-            .then(res => {
-                if (res.safalta) loadFeed();
-                else alert(res.sandesh);
-            });
+    function updateFileName() {
+        const input = document.getElementById('feed-photo');
+        const span = document.getElementById('file-name');
+        if (input.files.length > 0) {
+            span.textContent = input.files[0].name;
+        }
     }
 </script>
 

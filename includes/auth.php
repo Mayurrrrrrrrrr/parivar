@@ -1,52 +1,31 @@
 <?php
 /**
- * प्रमाणीकरण (Authentication) — सत्र और भूमिका प्रबंधन
+ * प्रमाणीकरण — session management
  */
-session_start();
-
-// PHP Hardening
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_samesite', 'Strict');
-ini_set('session.use_strict_mode', 1);
-
-// Security headers
-header("X-Frame-Options: DENY");
-header("X-Content-Type-Options: nosniff");
-header("Referrer-Policy: strict-origin-when-cross-origin");
-
-// CSRF Token Initialization
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-/**
- * जांचें कि क्या उपयोगकर्ता लॉग इन है
- */
-function isLoggedIn() {
-    return isset($_SESSION['user_id']);
+function isLoggedIn(): bool {
+    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 }
 
-/**
- * अगर लॉग इन नहीं है तो लॉगिन पेज पर भेजें
- */
-function requireLogin() {
+function isMukhya(): bool {
+    return isLoggedIn() && ($_SESSION['bhumika'] ?? '') === 'mukhya';
+}
+
+function isSadasy(): bool {
+    return isLoggedIn() && ($_SESSION['bhumika'] ?? '') === 'sadasy';
+}
+
+function requireLogin(): void {
     if (!isLoggedIn()) {
-        header('Location: /index.php');
+        header('Location: /index.php?error=login_required');
         exit;
     }
 }
 
-/**
- * जांचें कि क्या उपयोगकर्ता 'मुख्य' (Admin) है
- */
-function isMukhya() {
-    return isset($_SESSION['bhumika']) && $_SESSION['bhumika'] === 'mukhya';
-}
-
-/**
- * अगर मुख्य नहीं है तो डैशबोर्ड पर भेजें
- */
-function requireMukhya() {
+function requireMukhya(): void {
     requireLogin();
     if (!isMukhya()) {
         header('Location: /pages/dashboard.php?error=adhikar_nahi');
@@ -54,33 +33,27 @@ function requireMukhya() {
     }
 }
 
-/**
- * वर्तमान परिवार आईडी प्राप्त करें
- */
-function getParivarId() {
-    return $_SESSION['parivar_id'] ?? null;
+function currentUserId(): int {
+    return (int)($_SESSION['user_id'] ?? 0);
+}
+
+function currentParivarId(): int {
+    return (int)($_SESSION['parivar_id'] ?? 0);
 }
 
 /**
- * वर्तमान उपयोगकर्ता नाम प्राप्त करें
- */
-function getUserName() {
-    return $_SESSION['user_naam'] ?? 'अतिथि';
-}
-
-/**
- * CSRF टोकन प्राप्त करें
+ * CSRF Protection
  */
 function csrf_token() {
-    return $_SESSION['csrf_token'] ?? '';
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
 }
 
-/**
- * CSRF टोकन सत्यापित करें
- */
 function csrf_verify() {
-    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        http_response_code(403);
-        die('CSRF सत्यापन विफल रहा।');
+    $token = $_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '';
+    if (empty($token) || $token !== ($_SESSION['csrf_token'] ?? '')) {
+        die('CSRF token mismatch');
     }
 }

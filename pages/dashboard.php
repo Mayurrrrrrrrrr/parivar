@@ -1,124 +1,110 @@
 <?php
 /**
- * मुख्य डैशबोर्ड — आज का पंचांग और आगामी कार्यक्रम
+ * डैशबोर्ड — मुख्य पृष्ठ
  */
 require_once __DIR__ . '/../includes/header.php';
+requireLogin();
 
-$parivar_id = getParivarId();
-$aaj_ki_tithi_full = (new PanchangCalculator())->getPanchang(date('Y-m-d'));
-$aaj_ki_tithi = $aaj_ki_tithi_full['formatted'];
-
-// कुलदेवी स्मरण (Navratri check)
-$navratri_msg = '';
-if ($aaj_ki_tithi_full['paksha'] === 'शुक्ल' && in_array($aaj_ki_tithi_full['maah'], ['चैत्र', 'आश्विन'])) {
-    $tithi_idx = $aaj_ki_tithi_full['tithi'];
-    $navratri_tithis = ['प्रतिपदा', 'द्वितीया', 'तृतीया', 'चतुर्थी', 'पंचमी', 'षष्ठी', 'सप्तमी', 'अष्टमी', 'नवमी'];
-    if (in_array($tithi_idx, $navratri_tithis)) {
-        $stmt = $pdo->prepare("SELECT kuldevi FROM parivar WHERE id = ?");
-        $stmt->execute([$parivar_id]);
-        $kd = $stmt->fetchColumn();
-        if ($kd) {
-            $navratri_msg = "🙏 कुलदेवी <strong>" . s($kd) . "</strong> को प्रणाम — " . $aaj_ki_tithi_full['maah'] . " नवरात्रि का शुभ अवसर";
-        }
-    }
-}
+$parivar_id = currentParivarId();
+$today_tithi = aajKiTithi();
 
 // आज के कार्यक्रम
-$stmt = $pdo->prepare("SELECT k.*, v.pratham_naam, v.kul_naam FROM karyakram k 
-                       LEFT JOIN vyakti v ON k.vyakti_id = v.id 
-                       WHERE k.parivar_id = ? AND k.tithi_gregorian = CURDATE()");
+$stmt = $pdo->prepare("SELECT k.*, v.pratham_naam FROM karyakram k LEFT JOIN vyakti v ON k.vyakti_id = v.id WHERE k.parivar_id = ? AND k.tithi_gregorian = CURDATE()");
 $stmt->execute([$parivar_id]);
-$aaj_ke_karyakram = $stmt->fetchAll();
+$today_events = $stmt->fetchAll();
 
-// आने वाले ७ दिन के कार्यक्रम
-$stmt = $pdo->prepare("SELECT k.*, v.pratham_naam, v.kul_naam FROM karyakram k 
-                       LEFT JOIN vyakti v ON k.vyakti_id = v.id 
-                       WHERE k.parivar_id = ? AND k.tithi_gregorian > CURDATE() 
-                       AND k.tithi_gregorian <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-                       ORDER BY k.tithi_gregorian ASC");
+// आने वाले कार्यक्रम (७ दिन)
+$stmt = $pdo->prepare("
+    SELECT k.*, v.pratham_naam 
+    FROM karyakram k 
+    LEFT JOIN vyakti v ON k.vyakti_id = v.id 
+    WHERE k.parivar_id = ? 
+    AND k.tithi_gregorian BETWEEN DATE_ADD(CURDATE(), INTERVAL 1 DAY) AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+    ORDER BY k.tithi_gregorian
+");
 $stmt->execute([$parivar_id]);
-$aagami_karyakram = $stmt->fetchAll();
+$upcoming_events = $stmt->fetchAll();
+
+// ताज़ा फ़ीड
+$stmt = $pdo->prepare("SELECT f.*, u.naam as user_naam FROM parivar_feed f JOIN users u ON f.user_id = u.id WHERE f.parivar_id = ? ORDER BY f.banaya_at DESC LIMIT 5");
+$stmt->execute([$parivar_id]);
+$feeds = $stmt->fetchAll();
 ?>
 
-<div class="card" style="background: linear-gradient(135deg, var(--rang-pramukh), var(--rang-uprang)); color: white;">
-    <h2>आज का पंचांग</h2>
-    <p style="font-size: 1.2rem;"><?php echo formatGregorianHindi(date('Y-m-d')); ?></p>
-    <p style="font-size: 1.5rem; font-weight: bold; margin-top: 0.5rem;">
-        <i class="fa fa-calendar-day"></i> <?php echo s($aaj_ki_tithi); ?>
-    </p>
-    <?php if ($navratri_msg): ?>
-        <div style="margin-top: 1rem; padding: 0.8rem; background: rgba(255,255,255,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);">
-            <?php echo $navratri_msg; ?>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+    <!-- पंचांग एवं आज के कार्यक्रम -->
+    <div class="card">
+        <h3>आज का पंचांग</h3>
+        <div style="background: #FFF5E6; padding: 1rem; border-radius: 8px; border-left: 5px solid var(--rang-pramukh); margin-top: 0.5rem;">
+            <p style="font-size: 1.2rem; font-weight: 600;"><?php echo date('d F Y'); ?></p>
+            <p style="font-size: 1.4rem; color: var(--rang-pramukh); margin-top: 0.5rem;"><?php echo $today_tithi; ?></p>
         </div>
-    <?php endif; ?>
+
+        <h3 style="margin-top: 2rem;">आज के कार्यक्रम</h3>
+        <?php if (empty($today_events)): ?>
+            <p style="color: #888;">आज कोई विशेष कार्यक्रम नहीं है।</p>
+        <?php else: ?>
+            <?php foreach ($today_events as $e): ?>
+                <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                    <span style="font-size: 1.2rem;"><?php echo getEventIcon($e['prakar']); ?></span>
+                    <strong><?php echo s($e['shirshak']); ?></strong>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
+    <!-- आने वाले कार्यक्रम -->
+    <div class="card">
+        <h3>आने वाले ७ दिन</h3>
+        <?php if (empty($upcoming_events)): ?>
+            <p style="color: #888;">अगले ७ दिनों में कोई कार्यक्रम नहीं है।</p>
+        <?php else: ?>
+            <div style="margin-top: 0.5rem;">
+                <?php foreach ($upcoming_events as $e): ?>
+                    <div style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem 0; border-bottom: 1px dashed #ddd;">
+                        <div style="text-align: center; min-width: 60px; background: #eee; padding: 0.3rem; border-radius: 4px;">
+                            <span style="font-size: 0.8rem; display: block;"><?php echo date('M', strtotime($e['tithi_gregorian'])); ?></span>
+                            <span style="font-size: 1.2rem; font-weight: bold;"><?php echo date('d', strtotime($e['tithi_gregorian'])); ?></span>
+                        </div>
+                        <div>
+                            <strong><?php echo s($e['shirshak']); ?></strong><br>
+                            <small style="color: #666;"><?php echo s($e['tithi_vs']); ?></small>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
-<div class="stat-grid">
-    <div class="card" style="margin-bottom: 0;">
-        <h3>आज के कार्यक्रम</h3>
-        <?php if (empty($aaj_ke_karyakram)): ?>
-            <p>आज कोई कार्यक्रम नहीं है।</p>
-        <?php else: ?>
-            <ul style="list-style: none;">
-                <?php foreach ($aaj_ke_karyakram as $k): ?>
-                    <li style="margin-bottom: 0.5rem;">
-                        <strong><?php echo s($k['shirshak']); ?></strong> 
-                        <?php if ($k['vyakti_id']): ?>
-                            — <?php echo s($k['pratham_naam']); ?>
-                        <?php endif; ?>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
+<!-- परिवार फ़ीड -->
+<div class="card" style="margin-top: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>परिवार फ़ीड</h3>
+        <a href="/pages/parivar_feed.php" style="color: var(--rang-pramukh); text-decoration: none;">सभी देखें →</a>
     </div>
     
-    <div class="card" style="margin-bottom: 0;">
-        <h3>आने वाले ७ दिन</h3>
-        <?php if (empty($aagami_karyakram)): ?>
-            <p>अगले ७ दिनों में कोई कार्यक्रम नहीं है।</p>
-        <?php else: ?>
-            <ul style="list-style: none;">
-                <?php foreach ($aagami_karyakram as $k): ?>
-                    <li style="margin-bottom: 0.5rem; border-bottom: 1px solid var(--rang-seemant); padding-bottom: 0.3rem;">
-                        <span style="color: var(--rang-pramukh); font-size: 0.8rem;">
-                            <?php echo formatGregorianHindi($k['tithi_gregorian']); ?>
-                        </span><br>
-                        <strong><?php echo s($k['shirshak']); ?></strong>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
-    </div>
+    <?php if (empty($feeds)): ?>
+        <p style="color: #888; text-align: center; padding: 2rem;">अभी तक कोई संदेश नहीं है।</p>
+    <?php else: ?>
+        <?php foreach ($feeds as $f): ?>
+            <div class="feed-item">
+                <div class="feed-header">
+                    <div class="feed-avatar"><?php echo mb_substr($f['user_naam'], 0, 1); ?></div>
+                    <div>
+                        <strong><?php echo s($f['user_naam']); ?></strong><br>
+                        <small style="color: #888;"><?php echo time_ago($f['banaya_at']); ?></small>
+                    </div>
+                </div>
+                <div class="feed-content">
+                    <p><?php echo nl2br(s($f['sandesh'])); ?></p>
+                    <?php if ($f['photo_url']): ?>
+                        <img src="/<?php echo $f['photo_url']; ?>" style="max-width: 100%; border-radius: 8px; margin-top: 0.5rem; max-height: 300px; object-fit: cover;">
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </div>
-
-<div class="card">
-    <h3>परिवार फ़ीड (ताज़ा पोस्ट)</h3>
-    <div id="quick-feed">
-        <p>लोड हो रहा है...</p>
-    </div>
-    <p style="text-align: right; margin-top: 1rem;">
-        <a href="parivar_feed.php">सभी पोस्ट देखें <i class="fa fa-arrow-right"></i></a>
-    </p>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        fetch('/api/feed.php?action=list&limit=5')
-            .then(r => r.json())
-            .then(res => {
-                const container = document.getElementById('quick-feed');
-                if (res.safalta && res.data.length > 0) {
-                    container.innerHTML = res.data.map(p => `
-                        <div class="feed-post">
-                            <div class="feed-meta"><strong>${p.user_naam}</strong> | ${p.banaya_at}</div>
-                            <div>${p.sandesh}</div>
-                        </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = '<p>अभी तक कोई पोस्ट नहीं है।</p>';
-                }
-            });
-    });
-</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

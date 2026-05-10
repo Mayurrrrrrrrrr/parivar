@@ -1,182 +1,130 @@
 <?php
 /**
  * पंचांग — विक्रम संवत् ↔ ग्रेगोरियन कनवर्टर
- * rss-shakha-app से लिया और पारिवार के लिए विस्तारित
+ * rss-shakha-app के algorithm पर आधारित
  */
 
-require_once __DIR__ . '/../config/db.php';
+define('VS_GREGORIAN_OFFSET', 57);
 
-class PanchangCalculator {
-    private $tithiNames = [
-        1=>'प्रतिपदा', 2=>'द्वितीया', 3=>'तृतीया', 4=>'चतुर्थी',
-        5=>'पंचमी', 6=>'षष्ठी', 7=>'सप्तमी', 8=>'अष्टमी',
-        9=>'नवमी', 10=>'दशमी', 11=>'एकादशी', 12=>'द्वादशी',
-        13=>'त्रयोदशी', 14=>'चतुर्दशी', 15=>'पूर्णिमा/अमावस्या'
-    ];
+$MASA_NAAM = [
+    1 => 'चैत्र', 2 => 'वैशाख', 3 => 'ज्येष्ठ', 4 => 'आषाढ़',
+    5 => 'श्रावण', 6 => 'भाद्रपद', 7 => 'आश्विन', 8 => 'कार्तिक',
+    9 => 'मार्गशीर्ष', 10 => 'पौष', 11 => 'माघ', 12 => 'फाल्गुन'
+];
 
-    private $maahNames = [
-        0=>'चैत्र', 1=>'वैशाख', 2=>'ज्येष्ठ', 3=>'आषाढ़',
-        4=>'श्रावण', 5=>'भाद्रपद', 6=>'आश्विन', 7=>'कार्तिक',
-        8=>'मार्गशीर्ष', 9=>'पौष', 10=>'माघ', 11=>'फाल्गुन'
-    ];
+$TITHI_NAAM = [
+    1 => 'प्रतिपदा', 2 => 'द्वितीया', 3 => 'तृतीया', 4 => 'चतुर्थी',
+    5 => 'पंचमी', 6 => 'षष्ठी', 7 => 'सप्तमी', 8 => 'अष्टमी',
+    9 => 'नवमी', 10 => 'दशमी', 11 => 'एकादशी', 12 => 'द्वादशी',
+    13 => 'त्रयोदशी', 14 => 'चतुर्दशी', 15 => 'पूर्णिमा'
+];
 
-    public function gregorianToJDN($year, $month, $day) {
-        $a = intval((14 - $month) / 12);
-        $y = $year + 4800 - $a;
-        $m = $month + 12 * $a - 3;
-        $jdn = $day + intval((153 * $m + 2) / 5) + 365 * $y
-               + intval($y / 4) - intval($y / 100) + intval($y / 400) - 32045;
-        return $jdn;
-    }
-
-    private function getSunLongitude($jdn) {
-        $n = $jdn - 2451545.0;
-        $L = fmod(280.46646 + 0.9856474 * $n, 360);
-        $g = fmod(357.52911 + 0.9856003 * $n, 360);
-        $gRad = deg2rad($g);
-        $C = (1.914602 - 0.004817 * ($n / 36525)) * sin($gRad)
-           + 0.019993 * sin(2 * $gRad)
-           + 0.000289 * sin(3 * $gRad);
-        return fmod($L + $C + 360, 360);
-    }
-
-    private function getMoonLongitude($jdn) {
-        $n = $jdn - 2451545.0;
-        $L0 = fmod(218.3165 + 13.17639648 * $n, 360);
-        $M  = fmod(134.9634 + 13.06499295 * $n, 360);
-        $F  = fmod(93.2721 + 13.22935020 * $n, 360);
-        $Ms = fmod(357.5291 + 0.98560028 * $n, 360);
-        $MRad  = deg2rad($M);
-        $FRad  = deg2rad($F);
-        $MsRad = deg2rad($Ms);
-        $L0Rad = deg2rad($L0);
-        $correction = 6.289 * sin($MRad)
-                    - 1.274 * sin(2 * $L0Rad - $MRad)
-                    + 0.658 * sin(2 * $L0Rad)
-                    - 0.214 * sin(2 * $MRad)
-                    - 0.186 * sin($MsRad)
-                    - 0.114 * sin(2 * $FRad)
-                    + 0.059 * sin(2 * $L0Rad - 2 * $MsRad)
-                    + 0.057 * sin(2 * $L0Rad - $MRad - $MsRad);
-        return fmod($L0 + $correction + 360, 360);
-    }
-
-    public function calculateTithi($jdn) {
-        $sunLon  = $this->getSunLongitude($jdn);
-        $moonLon = $this->getMoonLongitude($jdn);
-        $diff = fmod($moonLon - $sunLon + 360, 360);
-        $tithiNum = intval($diff / 12) + 1; // 1 to 30
-        $paksha = ($tithiNum <= 15) ? 'शुक्ल' : 'कृष्ण';
-        $tithiIndex = ($tithiNum <= 15) ? $tithiNum : $tithiNum - 15;
-        
-        if ($tithiNum == 15) {
-            $tithiName = 'पूर्णिमा';
-        } elseif ($tithiNum == 30) {
-            $tithiName = 'अमावस्या';
-        } else {
-            $tithiName = $this->tithiNames[$tithiIndex] ?? 'अज्ञात';
-        }
-
-        return [
-            'tithi_num' => $tithiNum,
-            'tithi_index' => $tithiIndex,
-            'tithi_name' => $tithiName,
-            'paksha' => $paksha
-        ];
-    }
-
-    public function calculateSamvat($gYear, $gMonth, $gDay) {
-        // Approx conversion: VS = Gregorian + 57 (approx)
-        // More accurately, VS starts in March/April
-        if ($gMonth >= 4 || ($gMonth == 3 && $gDay >= 22)) {
-            $vikramSamvat = $gYear + 57;
-        } else {
-            $vikramSamvat = $gYear + 56;
-        }
-
-        $dayOfYear = date('z', mktime(0, 0, 0, $gMonth, $gDay, $gYear));
-        $lunarOffset = ($dayOfYear - 80 + 366) % 366;
-        $maahIndex = intval($lunarOffset / 30.44) % 12;
-        $maahName  = $this->maahNames[$maahIndex];
-
-        return [
-            'vikram_samvat' => $vikramSamvat,
-            'maah' => $maahName
-        ];
-    }
-
-    public function getPanchang($date) {
-        $ts = strtotime($date);
-        $y = (int)date('Y', $ts);
-        $m = (int)date('m', $ts);
-        $d = (int)date('d', $ts);
-
-        $jdn = $this->gregorianToJDN($y, $m, $d);
-        $tithi = $this->calculateTithi($jdn);
-        $samvat = $this->calculateSamvat($y, $m, $d);
-
-        return [
-            'samvat' => $samvat['vikram_samvat'],
-            'maah' => $samvat['maah'],
-            'paksha' => $tithi['paksha'],
-            'tithi' => $tithi['tithi_name'],
-            'formatted' => $samvat['maah'] . ' ' . $tithi['paksha'] . ' ' . $tithi['tithi_name'] . ', वि.सं. ' . $samvat['vikram_samvat']
-        ];
-    }
-}
+$MASA_GREGORIAN_START = [
+    1 => ['month' => 3, 'day' => 22],   // चैत्र
+    2 => ['month' => 4, 'day' => 21],   // वैशाख
+    3 => ['month' => 5, 'day' => 22],   // ज्येष्ठ
+    4 => ['month' => 6, 'day' => 22],   // आषाढ़
+    5 => ['month' => 7, 'day' => 23],   // श्रावण
+    6 => ['month' => 8, 'day' => 23],   // भाद्रपद
+    7 => ['month' => 9, 'day' => 23],   // आश्विन
+    8 => ['month' => 10, 'day' => 24],  // कार्तिक
+    9 => ['month' => 11, 'day' => 23],  // मार्गशीर्ष
+    10 => ['month' => 12, 'day' => 22], // पौष
+    11 => ['month' => 1, 'day' => 21],  // माघ
+    12 => ['month' => 2, 'day' => 20],  // फाल्गुन
+];
 
 /**
  * ग्रेगोरियन → विक्रम संवत्
  */
 function gregorianToVS(int $day, int $month, int $year): array {
-    $calc = new PanchangCalculator();
-    return $calc->getPanchang("$year-$month-$day");
-}
-
-/**
- * विक्रम संवत् तिथि → ग्रेगोरियन (Search method)
- * Returns: DATE string YYYY-MM-DD
- */
-function vsToGregorian(string $tithi, string $paksha, string $masa, int $samvat_year): string {
-    $calc = new PanchangCalculator();
-    // Samvat year N corresponds roughly to Gregorian year N-57
-    $gYear = $samvat_year - 57;
+    global $MASA_NAAM, $TITHI_NAAM;
     
-    // Search within +/- 15 days of the estimated date
-    // For simplicity in Phase 2, we search the entire year or a range
-    // Start from March of gYear to March of gYear+1
-    $start = strtotime(($gYear) . "-03-01");
-    $end = strtotime(($gYear + 1) . "-05-01");
+    $jd = gregorianToJulian($day, $month, $year);
+    $synodicMonth = 29.530588853;
+    $refNewMoon = 2451549.952;
     
-    for ($i = $start; $i <= $end; $i += 86400) {
-        $d = date('Y-m-d', $i);
-        $p = $calc->getPanchang($d);
-        if ($p['maah'] === $masa && $p['paksha'] === $paksha && $p['tithi'] === $tithi) {
-            return $d;
-        }
+    $daysSinceRef = $jd - $refNewMoon;
+    $monthsSinceRef = $daysSinceRef / $synodicMonth;
+    $currentMonthFraction = $monthsSinceRef - floor($monthsSinceRef);
+    
+    $tithiNum = (int)($currentMonthFraction * 30) + 1;
+    if ($tithiNum > 30) $tithiNum = 30;
+    
+    if ($tithiNum <= 15) {
+        $paksha = 'शुक्ल';
+        $tithiDisplay = $tithiNum;
+    } else {
+        $paksha = 'कृष्ण';
+        $tithiDisplay = $tithiNum - 15;
     }
-    return "";
+    
+    $masaNum = approximateMasa($month, $day);
+    $vsYear = ($month >= 4) ? ($year + 57) : ($year + 56);
+    
+    $tithiName = $TITHI_NAAM[$tithiDisplay] ?? $tithiDisplay;
+    $masaName = $MASA_NAAM[$masaNum] ?? 'अज्ञात';
+    
+    return [
+        'samvat' => $vsYear,
+        'masa' => $masaName,
+        'masa_num' => $masaNum,
+        'paksha' => $paksha,
+        'tithi' => $tithiName,
+        'tithi_num' => $tithiDisplay,
+        'formatted' => "$masaName $paksha $tithiName, वि.सं. $vsYear"
+    ];
+}
+
+function gregorianToJulian(int $d, int $m, int $y): float {
+    if ($m <= 2) { $y--; $m += 12; }
+    $A = (int)($y / 100);
+    $B = 2 - $A + (int)($A / 4);
+    return (int)(365.25 * ($y + 4716)) + (int)(30.6001 * ($m + 1)) + $d + $B - 1524.5;
+}
+
+function approximateMasa(int $gMonth, int $gDay): int {
+    $dayOfYear = mktime(0,0,0,$gMonth,$gDay,2000);
+    $marEquinox = mktime(0,0,0,3,22,2000);
+    $diff = ($dayOfYear - $marEquinox) / 86400;
+    if ($diff < 0) $diff += 365;
+    $masaNum = (int)($diff / 29.53) + 1;
+    if ($masaNum > 12) $masaNum = 12;
+    if ($masaNum < 1) $masaNum = 1;
+    return $masaNum;
 }
 
 /**
- * आज की तिथि विक्रम संवत् में
+ * आज की तिथि
  */
 function aajKiTithi(): string {
-    $calc = new PanchangCalculator();
-    $res = $calc->getPanchang(date('Y-m-d'));
-    return $res['formatted'];
+    $result = gregorianToVS((int)date('d'), (int)date('m'), (int)date('Y'));
+    return $result['formatted'];
 }
 
 /**
- * अगली बार कब होगी यह तिथि — ग्रेगोरियन में
+ * VS tithi string से अगली Gregorian date
  */
-function agliTithiGregorian(string $masa, string $paksha, string $tithi): string {
-    $currentSamvat = (new PanchangCalculator())->calculateSamvat((int)date('Y'), (int)date('m'), (int)date('d'))['vikram_samvat'];
+function agliTithiGregorian(string $masaName, string $paksha, string $tithiName): string {
+    global $MASA_NAAM, $MASA_GREGORIAN_START, $TITHI_NAAM;
     
-    // Check current samvat
-    $d = vsToGregorian($tithi, $paksha, $masa, $currentSamvat);
-    if ($d && $d >= date('Y-m-d')) return $d;
+    $masaNum = array_search($masaName, $MASA_NAAM);
+    if (!$masaNum) return date('Y-m-d'); 
     
-    // Check next samvat
-    return vsToGregorian($tithi, $paksha, $masa, $currentSamvat + 1);
+    $start = $MASA_GREGORIAN_START[$masaNum];
+    $year = date('Y');
+    
+    $pakshaMult = ($paksha === 'शुक्ल') ? 0 : 15;
+    $tithiNums = array_flip($TITHI_NAAM);
+    $tithiNum = ($tithiNums[$tithiName] ?? 1) + $pakshaMult;
+    
+    $baseDate = mktime(0, 0, 0, $start['month'], $start['day'], $year);
+    $eventDate = $baseDate + ($tithiNum * 0.9856 * 86400); 
+    
+    if ($eventDate < time()) {
+        $baseDate = mktime(0, 0, 0, $start['month'], $start['day'], $year + 1);
+        $eventDate = $baseDate + ($tithiNum * 0.9856 * 86400);
+    }
+    
+    return date('Y-m-d', $eventDate);
 }

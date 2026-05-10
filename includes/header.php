@@ -2,6 +2,7 @@
 /**
  * मुख्य हेडर — सभी पेजों के लिए
  */
+require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/panchang.php';
@@ -29,15 +30,6 @@ requireLogin();
         </div>
     </header>
 
-    <nav style="background: var(--rang-uprang); color: white; padding: 0.5rem 0;">
-        <div class="container" style="display: flex; gap: 1rem; overflow-x: auto; white-space: nowrap; padding: 0 1rem;">
-            <a href="/pages/dashboard.php" style="color: white; font-weight: normal;">मुख्य</a>
-            <a href="/pages/sadasy_banao.php" style="color: white; font-weight: normal;">+ सदस्य जोड़ें</a>
-            <a href="/pages/vansh_vriksha.php" style="color: white; font-weight: normal;">वंश वृक्ष</a>
-            <a href="/pages/karyakram.php" style="color: white; font-weight: normal;">कार्यक्रम</a>
-            <a href="/pages/parivar_feed.php" style="color: white; font-weight: normal;">फ़ीड</a>
-            <a href="/pages/settings.php" style="color: white; font-weight: normal;">सेटिंग्स</a>
-        </div>
-    </nav>
+    <?php require_once __DIR__ . '/nav.php'; ?>
 
     <main class="container">
