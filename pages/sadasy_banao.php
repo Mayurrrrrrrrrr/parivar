@@ -79,6 +79,57 @@ $parivar_id = getParivarId();
                     <?php endforeach; ?>
                 </select>
             </div>
+
+            <div class="divider" style="grid-column: span 2;"></div>
+
+            <!-- Extended Relation Selection -->
+            <div style="grid-column: span 2;">
+                <p style="font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--rang-pramukh);">विस्तृत संबंध (जैसे मामा, चाचा, दामाद आदि)</p>
+            </div>
+            <div class="form-group">
+                <label>संबंधी चुनें</label>
+                <select name="relative_id" class="form-control">
+                    <option value="">— चुनें —</option>
+                    <?php foreach ($all_members as $m): ?>
+                        <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>नया सदस्य उनका क्या है?</label>
+                <select name="relative_relation" class="form-control">
+                    <option value="">— संबंध चुनें —</option>
+                    <option value="pati">पति</option>
+                    <option value="patni">पत्नी</option>
+                    <option value="bhai">भाई</option>
+                    <option value="behen">बहन</option>
+                    <option value="mama">मामा</option>
+                    <option value="mami">मामी</option>
+                    <option value="mausi">मौसी</option>
+                    <option value="mausa">मौसा</option>
+                    <option value="chacha">चाचा</option>
+                    <option value="chachi">चाची</option>
+                    <option value="taau">ताऊ</option>
+                    <option value="tai">ताई</option>
+                    <option value="bua">बुआ</option>
+                    <option value="fufa">फूफा</option>
+                    <option value="sasur">ससुर</option>
+                    <option value="saas">सास</option>
+                    <option value="sala">साला</option>
+                    <option value="sali">साली</option>
+                    <option value="jija">जीजा</option>
+                    <option value="bhabhi">भाभी</option>
+                    <option value="devar">देवर</option>
+                    <option value="damad">दामाद</option>
+                    <option value="bahu">बहू</option>
+                    <option value="samdhi">समधी</option>
+                    <option value="samdhan">समधन</option>
+                    <option value="dada">दादा</option>
+                    <option value="dadi">दादी</option>
+                    <option value="nana">नाना</option>
+                    <option value="nani">नानी</option>
+                </select>
+            </div>
             <div class="form-group" style="grid-column: span 2;">
                 <label>भाई / बहन (पोर्टल पर मौजूद सदस्यों को चुनें)</label>
                 <select name="sibling_ids[]" class="form-control" multiple style="height: 100px;">

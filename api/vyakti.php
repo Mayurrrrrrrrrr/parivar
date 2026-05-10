@@ -99,18 +99,60 @@ switch ($action) {
 
             // 3. Build Sibling Relations
             foreach ($sibling_ids as $sid) {
-                // Determine sibling type based on gender
                 $stmt_s = $pdo->prepare("SELECT ling FROM vyakti WHERE id = ?");
                 $stmt_s->execute([$sid]);
                 $s_ling = $stmt_s->fetchColumn();
 
-                // Sid is brother/sister of New
                 $prakar_sid_to_new = ($s_ling === 'stri') ? 'behen' : 'bhai';
                 $pdo->prepare("INSERT IGNORE INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)")->execute([$sid, $new_person_id, $prakar_sid_to_new]);
 
-                // New is brother/sister of Sid
                 $prakar_new_to_sid = ($ling === 'stri') ? 'behen' : 'bhai';
                 $pdo->prepare("INSERT IGNORE INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)")->execute([$new_person_id, $sid, $prakar_new_to_sid]);
+            }
+
+            // 4. Build Extended Relation
+            $rel_id = $_POST['relative_id'] ?? null;
+            $rel_type = $_POST['relative_relation'] ?? '';
+            if ($rel_id && $rel_type) {
+                // New Person (C) is [rel_type] of [rel_id]
+                $pdo->prepare("INSERT IGNORE INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)")->execute([$new_person_id, $rel_id, $rel_type]);
+
+                // Determine reciprocal
+                $reciprocal = '';
+                $is_female = ($ling === 'stri');
+
+                switch ($rel_type) {
+                    case 'pati': $reciprocal = 'patni'; break;
+                    case 'patni': $reciprocal = 'pati'; break;
+                    case 'bhai':
+                    case 'behen': $reciprocal = $is_female ? 'behen' : 'bhai'; break;
+                    case 'mama':
+                    case 'mausa':
+                    case 'mami':
+                    case 'mausi': $reciprocal = $is_female ? 'bhanji' : 'bhanja'; break;
+                    case 'chacha':
+                    case 'taau':
+                    case 'fufa':
+                    case 'chachi':
+                    case 'tai':
+                    case 'bua': $reciprocal = $is_female ? 'bhatiji' : 'bhatija'; break;
+                    case 'dada':
+                    case 'dadi': $reciprocal = $is_female ? 'poti' : 'pota'; break;
+                    case 'nana':
+                    case 'nani': $reciprocal = $is_female ? 'natini' : 'nati'; break;
+                    case 'sasur':
+                    case 'saas': $reciprocal = $is_female ? 'bahu' : 'damad'; break;
+                    case 'sala':
+                    case 'sali': $reciprocal = $is_female ? 'bhabhi' : 'jija'; break;
+                    case 'damad':
+                    case 'bahu': $reciprocal = 'sasur'; break; // Approximate
+                    case 'samdhi':
+                    case 'samdhan': $reciprocal = $is_female ? 'samdhan' : 'samdhi'; break;
+                }
+
+                if ($reciprocal) {
+                    $pdo->prepare("INSERT IGNORE INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)")->execute([$rel_id, $new_person_id, $reciprocal]);
+                }
             }
 
             $pdo->commit();
