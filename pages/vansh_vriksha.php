@@ -56,18 +56,80 @@ requireLogin();
         const nodes = data.nodes;
         const links = data.edges;
 
-        // Force simulation for a flexible tree layout
+        const nodeById = new Map(nodes.map(d => [d.id, d]));
+        links.forEach(l => {
+            l.source = nodeById.get(l.vyakti_a_id);
+            l.target = nodeById.get(l.vyakti_b_id);
+        });
+        const validLinks = links.filter(l => l.source && l.target);
+
+        // 1. Calculate Generations
+        nodes.forEach(d => d.generation = null);
+        
+        let normalizedEdges = [];
+        validLinks.forEach(l => {
+            if (l.sambandh_prakar === 'pita' || l.sambandh_prakar === 'mata') {
+                normalizedEdges.push({parent: l.source.id, child: l.target.id});
+            } else if (l.sambandh_prakar === 'putra' || l.sambandh_prakar === 'putri') {
+                normalizedEdges.push({parent: l.target.id, child: l.source.id});
+            }
+        });
+
+        let hasParent = new Set(normalizedEdges.map(e => e.child));
+        let roots = nodes.filter(n => !hasParent.has(n.id));
+        if (roots.length === 0 && nodes.length > 0) roots = [nodes[0]];
+
+        let queue = roots.map(r => { r.generation = 0; return r; });
+        while(queue.length > 0) {
+            let curr = queue.shift();
+            
+            // Children
+            let childrenIds = normalizedEdges.filter(e => e.parent === curr.id).map(e => e.child);
+            childrenIds.forEach(cid => {
+                let child = nodeById.get(cid);
+                if (child && child.generation === null) {
+                    child.generation = curr.generation + 1;
+                    queue.push(child);
+                }
+            });
+            
+            // Spouses
+            let spouseLinks = validLinks.filter(l => 
+                (l.source.id === curr.id || l.target.id === curr.id) && 
+                (l.sambandh_prakar === 'pati' || l.sambandh_prakar === 'patni')
+            );
+            spouseLinks.forEach(l => {
+                let spouseId = l.source.id === curr.id ? l.target.id : l.source.id;
+                let spouse = nodeById.get(spouseId);
+                if (spouse && spouse.generation === null) {
+                    spouse.generation = curr.generation;
+                    queue.push(spouse);
+                }
+            });
+        }
+        
+        nodes.forEach(d => { if (d.generation === null) d.generation = 0; });
+
+        // 2. Force simulation with Y constraint based on generation
         const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(120))
-            .force("charge", d3.forceManyBody().strength(-400))
-            .force("center", d3.forceCenter(width / 2, height / 2));
+            .force("link", d3.forceLink(validLinks).id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-800))
+            .force("x", d3.forceX(width / 2).strength(0.05))
+            .force("y", d3.forceY(d => (d.generation * 140) + 100).strength(1)); // Very strong Y force
+
+        // Map relation types to colors/styles
+        function getLinkStyle(type) {
+            if (type === 'pati' || type === 'patni') return { stroke: '#e83e8c', dash: '5,5', width: 2 };
+            return { stroke: 'var(--seemant-strong)', dash: '0', width: 1.5 };
+        }
 
         const link = g.append("g")
-            .attr("stroke", "var(--seemant-strong)")
-            .attr("stroke-width", 1.5)
             .selectAll("line")
-            .data(links)
-            .join("line");
+            .data(validLinks)
+            .join("line")
+            .attr("stroke", d => getLinkStyle(d.sambandh_prakar).stroke)
+            .attr("stroke-width", d => getLinkStyle(d.sambandh_prakar).width)
+            .attr("stroke-dasharray", d => getLinkStyle(d.sambandh_prakar).dash);
 
         const node = g.append("g")
             .selectAll("g")
@@ -79,17 +141,21 @@ requireLogin();
             });
 
         node.append("circle")
-            .attr("r", 22)
-            .attr("fill", d => d.jeevit ? "var(--rang-pramukh)" : "#888")
+            .attr("r", 24)
+            .attr("fill", d => {
+                if (!d.jeevit) return "#888";
+                return d.ling === 'stri' ? "#e83e8c" : "var(--rang-pramukh)";
+            })
             .attr("stroke", "white")
-            .attr("stroke-width", 2);
+            .attr("stroke-width", 2)
+            .style("filter", "drop-shadow(0 4px 6px rgba(0,0,0,0.1))");
 
         node.append("text")
             .attr("text-anchor", "middle")
-            .attr("dy", "38px")
+            .attr("dy", "42px")
             .attr("fill", "var(--text-primary)")
-            .attr("font-size", "12px")
-            .attr("font-weight", "500")
+            .attr("font-size", "13px")
+            .attr("font-weight", "600")
             .text(d => d.name);
 
         simulation.on("tick", () => {

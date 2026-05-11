@@ -50,12 +50,22 @@ $family_code = $parivar['parivar_code'];
     <?php if (isMukhya()): ?>
     <!-- Family Edit (Mukhya Only) -->
     <div class="section-header"><span class="section-title">🏠 परिवार सेटिंग्स</span></div>
+    
+    <a href="merge_vyakti.php" class="event-card" style="margin-bottom:12px; display:flex; align-items:center; background:var(--bg-card); padding:12px; border-radius:12px; border:0.5px solid var(--seemant); text-decoration:none;">
+        <div class="avatar avatar-sm" style="background:#FFE4D6; color:#D9534F; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:50%; margin-right:12px;"><i class="ti ti-users"></i></div>
+        <div style="flex:1;">
+            <div style="font-size:14px; font-weight:500; color:var(--text-primary);">प्रोफाइल मर्ज करें</div>
+            <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">डुप्लीकेट व्यक्ति हटाएं</div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--text-muted)"></i>
+    </a>
+
     <div class="card" style="background:var(--bg-card); border-radius:12px; padding:16px; border:0.5px solid var(--seemant);">
         <form action="/parivar/api/family.php?action=update" method="POST">
             <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
             <div class="form-group">
                 <label>परिवार का नाम</label>
-                <input type="text" name="parivar_naam" class="form-control hindi-type" value="<?php echo s($parivar['parivar_naam']); ?>" required>
+                <input type="text" name="parivar_naam" class="form-control hindi-type" value="<?php echo s($parivar['parivar_naam'] ?? ''); ?>" required>
             </div>
             <button type="submit" class="btn btn-secondary" style="padding:8px 16px; font-size:12px; width:auto;">अपडेट करें</button>
         </form>

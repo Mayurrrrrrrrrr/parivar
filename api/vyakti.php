@@ -59,6 +59,15 @@ switch ($action) {
         }
 
         try {
+            // Duplicate Check
+            $gregorian_for_check = empty($gregorian) ? null : $gregorian;
+            $stmt_dup = $pdo->prepare("SELECT id FROM vyakti WHERE parivar_id = ? AND pratham_naam = ? AND kul_naam = ? AND ling = ? AND janm_tithi_gregorian <=> ?");
+            $stmt_dup->execute([$parivar_id, $pratham, $kul, $ling, $gregorian_for_check]);
+            if ($stmt_dup->fetchColumn()) {
+                header('Location: /parivar/pages/dashboard.php?error=duplicate_entry');
+                exit;
+            }
+
             $pdo->beginTransaction();
             
             $stmt = $pdo->prepare("INSERT INTO vyakti (parivar_id, pratham_naam, madhya_naam, kul_naam, ling, janm_tithi_gregorian, janm_tithi_vs, gotra, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -160,6 +169,59 @@ switch ($action) {
         } catch (Exception $e) {
             $pdo->rollBack();
             header('Location: /parivar/pages/sadasy_banao.php?error=fail');
+        }
+        exit;
+
+    case 'merge':
+        csrf_verify();
+        requireMukhya();
+        
+        $primary_id = $_POST['primary_id'] ?? 0;
+        $duplicate_id = $_POST['duplicate_id'] ?? 0;
+        
+        if (!$primary_id || !$duplicate_id || $primary_id == $duplicate_id) {
+            header('Location: /parivar/pages/merge_vyakti.php?error=invalid_selection');
+            exit;
+        }
+
+        try {
+            $pdo->beginTransaction();
+            
+            // Validate that both belong to the same parivar
+            $stmt = $pdo->prepare("SELECT id FROM vyakti WHERE id IN (?, ?) AND parivar_id = ?");
+            $stmt->execute([$primary_id, $duplicate_id, $parivar_id]);
+            if ($stmt->rowCount() !== 2) {
+                throw new Exception("Invalid profiles");
+            }
+            
+            // Update sambandh table where vyakti_a_id = duplicate_id
+            $stmt = $pdo->prepare("UPDATE IGNORE sambandh SET vyakti_a_id = ? WHERE vyakti_a_id = ?");
+            $stmt->execute([$primary_id, $duplicate_id]);
+            
+            // Update sambandh table where vyakti_b_id = duplicate_id
+            $stmt = $pdo->prepare("UPDATE IGNORE sambandh SET vyakti_b_id = ? WHERE vyakti_b_id = ?");
+            $stmt->execute([$primary_id, $duplicate_id]);
+            
+            // Update karyakram table
+            $stmt = $pdo->prepare("UPDATE karyakram SET vyakti_id = ? WHERE vyakti_id = ?");
+            $stmt->execute([$primary_id, $duplicate_id]);
+            
+            // Update parivar_feed table
+            $stmt = $pdo->prepare("UPDATE parivar_feed SET vyakti_id = ? WHERE vyakti_id = ?");
+            $stmt->execute([$primary_id, $duplicate_id]);
+            
+            // Delete duplicate_id
+            $stmt = $pdo->prepare("DELETE FROM vyakti WHERE id = ? AND parivar_id = ?");
+            $stmt->execute([$duplicate_id, $parivar_id]);
+            
+            // Clean up any remaining self-relations (A is related to A) after IGNORE
+            $pdo->prepare("DELETE FROM sambandh WHERE vyakti_a_id = vyakti_b_id")->execute();
+            
+            $pdo->commit();
+            header('Location: /parivar/pages/dashboard.php?success=merged');
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            header('Location: /parivar/pages/merge_vyakti.php?error=fail');
         }
         exit;
 
