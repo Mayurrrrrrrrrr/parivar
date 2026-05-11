@@ -26,12 +26,18 @@ requireLogin();
     let svg, g, zoom;
 
     document.addEventListener('DOMContentLoaded', function() {
-        fetch('/parivar/api/vyakti.php?action=tree')
+        fetch('../api/vyakti.php?action=tree')
             .then(r => r.json())
             .then(data => {
-                if (data.safalta) {
+                if (data.safalta && data.data && data.data.nodes && data.data.nodes.length > 0) {
                     initTree(data.data);
+                } else {
+                    document.getElementById('tree-canvas').innerHTML = '<p style="padding: 20px; text-align: center;">वंश वृक्ष में अभी कोई सदस्य नहीं है।</p>';
                 }
+            })
+            .catch(e => {
+                console.error('Error fetching tree data:', e);
+                document.getElementById('tree-canvas').innerHTML = '<p style="padding: 20px; text-align: center; color: red;">डेटा लोड करने में समस्या आई।</p>';
             });
     });
 
@@ -160,13 +166,13 @@ requireLogin();
 
         simulation.on("tick", () => {
             link
-                .attr("x1", d => d.source.x)
-                .attr("y1", d => d.source.y)
-                .attr("x2", d => d.target.x)
-                .attr("y2", d => d.target.y);
+                .attr("x1", d => d.source ? d.source.x : 0)
+                .attr("y1", d => d.source ? d.source.y : 0)
+                .attr("x2", d => d.target ? d.target.x : 0)
+                .attr("y2", d => d.target ? d.target.y : 0);
 
             node
-                .attr("transform", d => `translate(${d.x},${d.y})`);
+                .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
         });
     }
 
