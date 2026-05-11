@@ -26,7 +26,9 @@ requireLogin();
     let svg, g, zoom;
 
     document.addEventListener('DOMContentLoaded', function() {
-        fetch('../api/vyakti.php?action=tree')
+        const urlParams = new URLSearchParams(window.location.search);
+        const pid = urlParams.get('parivar_id') || '';
+        fetch(`../api/vyakti.php?action=tree&parivar_id=${pid}`)
             .then(r => r.json())
             .then(data => {
                 if (data.safalta && data.data && data.data.nodes && data.data.nodes.length > 0) {
@@ -168,6 +170,12 @@ requireLogin();
             .join("g")
             .style("cursor", "pointer")
             .on("click", (event, d) => {
+                if (d.other_parivars && d.other_parivars.length > 0) {
+                    if (confirm(`यह सदस्य "${d.other_parivars[0].naam}" से भी जुड़ा है।\nक्या आप वह परिवार वृक्ष देखना चाहते हैं?\n(Cancel दबाने पर प्रोफ़ाइल खुलेगी)`)) {
+                        window.location.href = `vansh_vriksha.php?parivar_id=${d.other_parivars[0].id}`;
+                        return;
+                    }
+                }
                 window.location.href = `vyakti.php?id=${d.id}`;
             });
 
@@ -185,9 +193,9 @@ requireLogin();
                 if (!d.jeevit) return "#D2691E"; // Autumn Orange for deceased
                 return d.ling === 'stri' ? "#9ACD32" : "#228B22"; // Yellow-Green for female, Forest Green for male
             })
-            .attr("stroke", "#ffffff")
-            .attr("stroke-width", 1.5)
-            .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.2))");
+            .attr("stroke", d => (d.other_parivars && d.other_parivars.length > 0) ? "#FFD700" : "#ffffff")
+            .attr("stroke-width", d => (d.other_parivars && d.other_parivars.length > 0) ? 3 : 1.5)
+            .style("filter", d => (d.other_parivars && d.other_parivars.length > 0) ? "drop-shadow(0 0 8px rgba(255,215,0,0.8))" : "drop-shadow(0 2px 4px rgba(0,0,0,0.2))");
 
         node.append("text")
             .attr("text-anchor", "middle")

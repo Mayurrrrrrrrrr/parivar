@@ -21,14 +21,23 @@ switch ($action) {
         break;
 
     case 'tree':
+        $req_parivar_id = $_GET['parivar_id'] ?? $parivar_id;
+        
         // Nodes for D3.js
         $stmt = $pdo->prepare("SELECT v.id, v.pratham_naam as name, v.kul_naam, v.ling, v.jeevit, v.photo_url FROM vyakti v JOIN vyakti_parivar vp ON v.id = vp.vyakti_id WHERE vp.parivar_id = ?");
-        $stmt->execute([$parivar_id]);
-        $nodes = $stmt->fetchAll();
+        $stmt->execute([$req_parivar_id]);
+        $nodes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Find cross-family links
+        foreach ($nodes as &$n) {
+            $st = $pdo->prepare("SELECT p.id, p.naam FROM vyakti_parivar vp JOIN parivar p ON vp.parivar_id = p.id WHERE vp.vyakti_id = ? AND vp.parivar_id != ?");
+            $st->execute([$n['id'], $req_parivar_id]);
+            $n['other_parivars'] = $st->fetchAll(PDO::FETCH_ASSOC);
+        }
 
         // Edges (Relations)
         $stmt = $pdo->prepare("SELECT s.* FROM sambandh s JOIN vyakti_parivar vp1 ON s.vyakti_a_id = vp1.vyakti_id JOIN vyakti_parivar vp2 ON s.vyakti_b_id = vp2.vyakti_id WHERE vp1.parivar_id = ? AND vp2.parivar_id = ?");
-        $stmt->execute([$parivar_id, $parivar_id]);
+        $stmt->execute([$req_parivar_id, $req_parivar_id]);
         $edges = $stmt->fetchAll();
 
         echo json_encode([
