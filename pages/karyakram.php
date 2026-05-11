@@ -8,8 +8,23 @@ requireLogin();
 $parivar_id = currentParivarId();
 $action = $_GET['action'] ?? 'list';
 
-if ($action === 'list') {
-    $stmt = $pdo->prepare("SELECT k.*, v.pratham_naam, v.kul_naam FROM karyakram k LEFT JOIN vyakti v ON k.vyakti_id = v.id WHERE k.parivar_id = ? ORDER BY k.tithi_gregorian");
+    $sql_upcoming = "
+        SELECT k.*, v.pratham_naam, v.kul_naam,
+          CASE 
+            WHEN k.punravrutti = 1 THEN 
+              CASE 
+                WHEN DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) YEAR) < CURDATE() 
+                THEN DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) + 1 YEAR) 
+                ELSE DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) YEAR) 
+              END
+            ELSE k.tithi_gregorian
+          END as next_date
+        FROM karyakram k LEFT JOIN vyakti v ON k.vyakti_id = v.id 
+        WHERE k.parivar_id = ? 
+        HAVING next_date >= CURDATE()
+        ORDER BY next_date ASC
+    ";
+    $stmt = $pdo->prepare($sql_upcoming);
     $stmt->execute([$parivar_id]);
     $events = $stmt->fetchAll();
 } else {
@@ -41,8 +56,8 @@ if ($action === 'list') {
                     <div class="vs-pill"><?php echo s($e['tithi_vs']); ?></div>
                 </div>
                 <div class="dual-date" style="align-items:flex-end">
-                    <div class="greg"><?php echo date('d M', strtotime($e['tithi_gregorian'])); ?></div>
-                    <div class="vs"><?php echo date('Y', strtotime($e['tithi_gregorian'])); ?></div>
+                    <div class="greg"><?php echo date('d M', strtotime($e['next_date'])); ?></div>
+                    <div class="vs"><?php echo date('Y', strtotime($e['next_date'])); ?></div>
                 </div>
             </div>
         <?php endforeach; ?>

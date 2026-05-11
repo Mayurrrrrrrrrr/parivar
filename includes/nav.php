@@ -15,6 +15,9 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
     <a href="/pages/karyakram.php" class="nav-item <?= $currentPage==='karyakram'?'active':'' ?>">
         <i class="ti ti-calendar-event"></i><span>कार्यक्रम</span>
     </a>
+    <a href="/pages/itihas.php" class="nav-item <?= $currentPage==='itihas'?'active':'' ?>">
+        <i class="ti ti-history"></i><span>इतिहास</span>
+    </a>
     <a href="/pages/parivar_feed.php" class="nav-item <?= $currentPage==='parivar_feed'?'active':'' ?>">
         <i class="ti ti-message-2-share"></i><span>फ़ीड</span>
     </a>

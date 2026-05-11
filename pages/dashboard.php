@@ -12,14 +12,42 @@ $stmt = $pdo->prepare("SELECT COUNT(*) FROM vyakti WHERE parivar_id = ?");
 $stmt->execute([$parivar_id]);
 $total_members = $stmt->fetchColumn();
 
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM karyakram WHERE parivar_id = ? AND tithi_gregorian >= CURDATE() AND tithi_gregorian <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)");
-$stmt->execute([$parivar_id]);
-$month_events = $stmt->fetchColumn();
-
-// Upcoming
-$stmt = $pdo->prepare("SELECT * FROM karyakram WHERE parivar_id = ? AND tithi_gregorian >= CURDATE() ORDER BY tithi_gregorian ASC LIMIT 3");
+// Month Events (Recurring aware)
+$sql_upcoming = "
+    SELECT *,
+      CASE 
+        WHEN punravrutti = 1 THEN 
+          CASE 
+            WHEN DATE_ADD(tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(tithi_gregorian) YEAR) < CURDATE() 
+            THEN DATE_ADD(tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(tithi_gregorian) + 1 YEAR) 
+            ELSE DATE_ADD(tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(tithi_gregorian) YEAR) 
+          END
+        ELSE tithi_gregorian
+      END as next_date
+    FROM karyakram 
+    WHERE parivar_id = ?
+    HAVING next_date >= CURDATE()
+    ORDER BY next_date ASC
+";
+$stmt = $pdo->prepare($sql_upcoming . " LIMIT 5");
 $stmt->execute([$parivar_id]);
 $upcoming = $stmt->fetchAll();
+
+$month_events = 0;
+foreach ($upcoming as $u) {
+    if ((strtotime($u['next_date']) - time()) <= 30 * 86400) $month_events++;
+}
+
+// Countdown Check
+$countdown_event = null;
+if (!empty($upcoming)) {
+    $first = $upcoming[0];
+    $days_left = floor((strtotime($first['next_date']) - strtotime(date('Y-m-d'))) / 86400);
+    if ($days_left <= 7) {
+        $countdown_event = $first;
+        $countdown_event['days_left'] = $days_left;
+    }
+}
 
 // Panchang Info (Today)
 $d = (int)date('d');
@@ -52,6 +80,23 @@ $panchang_data = gregorianToVS($d, $m, $y);
         </div>
         <i class="ti ti-sun" style="position: absolute; right: -20px; top: -20px; font-size: 120px; color: rgba(255,255,255,0.1);"></i>
     </div>
+
+    <!-- Phase 4: Countdown Banner & WhatsApp Share -->
+    <?php if ($countdown_event): ?>
+    <div class="card" style="background: linear-gradient(135deg, #10B981, #059669); color:white; padding:16px; display:flex; align-items:center; gap:16px; animation: pulse 2s infinite; margin-bottom: 24px;">
+        <div style="font-size:32px;">🎉</div>
+        <div style="flex:1;">
+            <h3 style="font-size:16px; margin:0; color:white;"><?php echo s($countdown_event['shirshak']); ?></h3>
+            <p style="font-size:12px; margin:4px 0 0; opacity:0.9;">
+                <?php echo $countdown_event['days_left'] == 0 ? 'आज है!' : ($countdown_event['days_left'] == 1 ? 'कल है!' : $countdown_event['days_left'] . ' दिन में!'); ?>
+            </p>
+        </div>
+        <a href="whatsapp://send?text=<?php echo urlencode('बधाई हो! ' . $countdown_event['shirshak'] . ' ' . date('d M', strtotime($countdown_event['next_date'])) . ' को है।'); ?>" class="btn" style="background:white; color:#059669; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; text-decoration:none; padding:0;">
+            <i class="ti ti-brand-whatsapp" style="font-size:24px;"></i>
+        </a>
+    </div>
+    <style>@keyframes pulse { 0% {box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);} 70% {box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);} 100% {box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);} }</style>
+    <?php endif; ?>
 
     <!-- Quick Stats Row -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
@@ -122,8 +167,8 @@ $panchang_data = gregorianToVS($d, $m, $y);
                     <div class="vs-pill"><?php echo s($e['tithi_vs']); ?></div>
                 </div>
                 <div style="text-align: right;">
-                    <div style="font-size: 13px; font-weight: 700; color: var(--text-main);"><?php echo date('d M', strtotime($e['tithi_gregorian'])); ?></div>
-                    <div style="font-size: 10px; color: var(--text-muted);"><?php echo date('Y', strtotime($e['tithi_gregorian'])); ?></div>
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-main);"><?php echo date('d M', strtotime($e['next_date'])); ?></div>
+                    <div style="font-size: 10px; color: var(--text-muted);"><?php echo date('Y', strtotime($e['next_date'])); ?></div>
                 </div>
             </div>
         <?php endforeach; ?>
