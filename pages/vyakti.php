@@ -8,7 +8,7 @@ requireLogin();
 $id = $_GET['id'] ?? 0;
 $parivar_id = currentParivarId();
 
-$stmt = $pdo->prepare("SELECT * FROM vyakti WHERE id = ? AND parivar_id = ?");
+$stmt = $pdo->prepare("SELECT v.* FROM vyakti v JOIN vyakti_parivar vp ON v.id = vp.vyakti_id WHERE v.id = ? AND vp.parivar_id = ?");
 $stmt->execute([$id, $parivar_id]);
 $v = $stmt->fetch();
 
@@ -273,6 +273,16 @@ $fullName = trim($v['pratham_naam'] . ' ' . ($v['madhya_naam'] ? $v['madhya_naam
     
     <?php if ($v['upnaam']): ?>
         <div class="glass-pill">उर्फ <?php echo s($v['upnaam']); ?></div>
+    <?php endif; ?>
+    
+    <?php if ($v['share_code']): ?>
+    <div style="margin-top: 12px;">
+        <span style="font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;">प्रोफ़ाइल शेयर कोड</span><br>
+        <div style="background: rgba(0,0,0,0.2); display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; margin-top: 4px; font-family: monospace; font-size: 15px; font-weight: bold;">
+            <?php echo $v['share_code']; ?>
+            <i class="ti ti-copy" style="cursor: pointer; opacity: 0.8;" onclick="navigator.clipboard.writeText('<?php echo $v['share_code']; ?>'); alert('कोड कॉपी हो गया!');"></i>
+        </div>
+    </div>
     <?php endif; ?>
 </div>
 

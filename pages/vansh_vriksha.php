@@ -117,25 +117,38 @@ requireLogin();
         nodes.forEach(d => { if (d.generation === null) d.generation = 0; });
 
         // 2. Force simulation with Y constraint based on generation
+        const maxGen = d3.max(nodes, d => d.generation) || 0;
+        
         const simulation = d3.forceSimulation(nodes)
             .force("link", d3.forceLink(validLinks).id(d => d.id).distance(100))
             .force("charge", d3.forceManyBody().strength(-800))
             .force("x", d3.forceX(width / 2).strength(0.05))
-            .force("y", d3.forceY(d => (d.generation * 140) + 100).strength(1)); // Very strong Y force
+            .force("y", d3.forceY(d => height - 100 - (d.generation * 160)).strength(1)); // Base at bottom, grows UP
 
         // Map relation types to colors/styles
         function getLinkStyle(type) {
-            if (type === 'pati' || type === 'patni') return { stroke: '#e83e8c', dash: '5,5', width: 2 };
-            return { stroke: 'var(--seemant-strong)', dash: '0', width: 1.5 };
+            if (type === 'pati' || type === 'patni') return { stroke: '#FF9F1C', dash: '3,3', width: 2.5, type: 'vine' };
+            return { stroke: 'url(#branchGradient)', dash: '0', width: 4, type: 'branch' };
         }
 
+        // Add SVG definitions for gradients
+        const defs = svg.append("defs");
+        const gradient = defs.append("linearGradient")
+            .attr("id", "branchGradient")
+            .attr("x1", "0%").attr("y1", "100%") // Bottom (Root)
+            .attr("x2", "0%").attr("y2", "0%");  // Top (Leaves)
+        gradient.append("stop").attr("offset", "0%").attr("stop-color", "#8B5A2B"); // Brown Trunk
+        gradient.append("stop").attr("offset", "100%").attr("stop-color", "#4CAF50"); // Green Branches
+
         const link = g.append("g")
-            .selectAll("line")
+            .selectAll("path")
             .data(validLinks)
-            .join("line")
+            .join("path")
+            .attr("fill", "none")
             .attr("stroke", d => getLinkStyle(d.sambandh_prakar).stroke)
             .attr("stroke-width", d => getLinkStyle(d.sambandh_prakar).width)
-            .attr("stroke-dasharray", d => getLinkStyle(d.sambandh_prakar).dash);
+            .attr("stroke-dasharray", d => getLinkStyle(d.sambandh_prakar).dash)
+            .style("opacity", 0.8);
 
         const node = g.append("g")
             .selectAll("g")
@@ -165,14 +178,22 @@ requireLogin();
             .text(d => d.name);
 
         simulation.on("tick", () => {
-            link
-                .attr("x1", d => d.source ? d.source.x : 0)
-                .attr("y1", d => d.source ? d.source.y : 0)
-                .attr("x2", d => d.target ? d.target.x : 0)
-                .attr("y2", d => d.target ? d.target.y : 0);
+            link.attr("d", d => {
+                const sourceX = d.source ? d.source.x : 0;
+                const sourceY = d.source ? d.source.y : 0;
+                const targetX = d.target ? d.target.x : 0;
+                const targetY = d.target ? d.target.y : 0;
 
-            node
-                .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
+                // Mycelium vine for spouses
+                if (d.sambandh_prakar === 'pati' || d.sambandh_prakar === 'patni') {
+                    return `M${sourceX},${sourceY} Q${(sourceX+targetX)/2},${sourceY-40} ${targetX},${targetY}`;
+                }
+
+                // Vertical organic branches for parent/child
+                return `M${sourceX},${sourceY} C${sourceX},${(sourceY+targetY)/2} ${targetX},${(sourceY+targetY)/2} ${targetX},${targetY}`;
+            });
+
+            node.attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
         });
     }
 
@@ -186,7 +207,13 @@ requireLogin();
 </script>
 
 <style>
-    #tree-canvas { background: var(--bg-page); height: calc(100vh - 160px); }
+    #tree-canvas { 
+        background: radial-gradient(circle at bottom, #F9FBE7 0%, var(--bg-page) 70%);
+        height: calc(100vh - 160px); 
+    }
+    [data-theme="dark"] #tree-canvas {
+        background: radial-gradient(circle at bottom, #1B2E1E 0%, var(--bg-page) 70%);
+    }
 </style>
 
 <?php include '../includes/nav.php'; ?>

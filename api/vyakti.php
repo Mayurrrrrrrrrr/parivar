@@ -15,20 +15,20 @@ $parivar_id = currentParivarId();
 
 switch ($action) {
     case 'list':
-        $stmt = $pdo->prepare("SELECT * FROM vyakti WHERE parivar_id = ? ORDER BY pratham_naam");
+        $stmt = $pdo->prepare("SELECT v.* FROM vyakti v JOIN vyakti_parivar vp ON v.id = vp.vyakti_id WHERE vp.parivar_id = ? ORDER BY v.pratham_naam");
         $stmt->execute([$parivar_id]);
         echo json_encode(['safalta' => true, 'data' => $stmt->fetchAll()]);
         break;
 
     case 'tree':
         // Nodes for D3.js
-        $stmt = $pdo->prepare("SELECT id, pratham_naam as name, kul_naam, ling, jeevit, photo_url FROM vyakti WHERE parivar_id = ?");
+        $stmt = $pdo->prepare("SELECT v.id, v.pratham_naam as name, v.kul_naam, v.ling, v.jeevit, v.photo_url FROM vyakti v JOIN vyakti_parivar vp ON v.id = vp.vyakti_id WHERE vp.parivar_id = ?");
         $stmt->execute([$parivar_id]);
         $nodes = $stmt->fetchAll();
 
         // Edges (Relations)
-        $stmt = $pdo->prepare("SELECT s.* FROM sambandh s JOIN vyakti v ON s.vyakti_a_id = v.id WHERE v.parivar_id = ?");
-        $stmt->execute([$parivar_id]);
+        $stmt = $pdo->prepare("SELECT s.* FROM sambandh s JOIN vyakti_parivar vp1 ON s.vyakti_a_id = vp1.vyakti_id JOIN vyakti_parivar vp2 ON s.vyakti_b_id = vp2.vyakti_id WHERE vp1.parivar_id = ? AND vp2.parivar_id = ?");
+        $stmt->execute([$parivar_id, $parivar_id]);
         $edges = $stmt->fetchAll();
 
         echo json_encode([
@@ -70,9 +70,12 @@ switch ($action) {
 
             $pdo->beginTransaction();
             
-            $stmt = $pdo->prepare("INSERT INTO vyakti (parivar_id, pratham_naam, madhya_naam, kul_naam, ling, janm_tithi_gregorian, janm_tithi_vs, gotra, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$parivar_id, $pratham, $madhya, $kul, $ling, $gregorian, $vs, $gotra, $photo_url]);
+            $share_code = 'VK-' . strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
+            $stmt = $pdo->prepare("INSERT INTO vyakti (parivar_id, pratham_naam, madhya_naam, kul_naam, ling, janm_tithi_gregorian, janm_tithi_vs, gotra, photo_url, share_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$parivar_id, $pratham, $madhya, $kul, $ling, $gregorian, $vs, $gotra, $photo_url, $share_code]);
             $new_person_id = $pdo->lastInsertId();
+
+            $pdo->prepare("INSERT INTO vyakti_parivar (vyakti_id, parivar_id) VALUES (?, ?)")->execute([$new_person_id, $parivar_id]);
 
             // 1. Inherit Parents from Siblings if not set
             if ((!$pita_id || !$mata_id) && !empty($sibling_ids)) {
@@ -172,6 +175,69 @@ switch ($action) {
         }
         exit;
 
+    case 'link_profile':
+        csrf_verify();
+        $code = $_POST['share_code'] ?? '';
+        if (!$code) {
+            header('Location: /pages/sadasy_banao.php?error=invalid_code');
+            exit;
+        }
+        $stmt = $pdo->prepare("SELECT id, ling FROM vyakti WHERE share_code = ?");
+        $stmt->execute([$code]);
+        $linked_vyakti = $stmt->fetch();
+        if ($linked_vyakti) {
+            $linked_id = $linked_vyakti['id'];
+            $ling = $linked_vyakti['ling'];
+            
+            $pdo->prepare("INSERT IGNORE INTO vyakti_parivar (vyakti_id, parivar_id) VALUES (?, ?)")->execute([$linked_id, $parivar_id]);
+            
+            // Build Extended Relation
+            $rel_id = $_POST['relative_id'] ?? null;
+            $rel_type = $_POST['relative_relation'] ?? '';
+            if ($rel_id && $rel_type) {
+                $pdo->prepare("INSERT IGNORE INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)")->execute([$linked_id, $rel_id, $rel_type]);
+
+                // Determine reciprocal
+                $reciprocal = '';
+                $is_female = ($ling === 'stri');
+                switch ($rel_type) {
+                    case 'pati': $reciprocal = 'patni'; break;
+                    case 'patni': $reciprocal = 'pati'; break;
+                    case 'bhai':
+                    case 'behen': $reciprocal = $is_female ? 'behen' : 'bhai'; break;
+                    case 'mama':
+                    case 'mausa':
+                    case 'mami':
+                    case 'mausi': $reciprocal = $is_female ? 'bhanji' : 'bhanja'; break;
+                    case 'chacha':
+                    case 'taau':
+                    case 'fufa':
+                    case 'chachi':
+                    case 'tai':
+                    case 'bua': $reciprocal = $is_female ? 'bhatiji' : 'bhatija'; break;
+                    case 'dada':
+                    case 'dadi': $reciprocal = $is_female ? 'poti' : 'pota'; break;
+                    case 'nana':
+                    case 'nani': $reciprocal = $is_female ? 'natini' : 'nati'; break;
+                    case 'sasur':
+                    case 'saas': $reciprocal = $is_female ? 'bahu' : 'damad'; break;
+                    case 'sala':
+                    case 'sali': $reciprocal = $is_female ? 'bhabhi' : 'jija'; break;
+                    case 'damad':
+                    case 'bahu': $reciprocal = 'sasur'; break;
+                    case 'samdhi':
+                    case 'samdhan': $reciprocal = $is_female ? 'samdhan' : 'samdhi'; break;
+                }
+                if ($reciprocal) {
+                    $pdo->prepare("INSERT IGNORE INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?, ?, ?)")->execute([$rel_id, $linked_id, $reciprocal]);
+                }
+            }
+            header('Location: /pages/dashboard.php?success=sadasy_joda');
+        } else {
+            header('Location: /pages/sadasy_banao.php?error=invalid_code');
+        }
+        exit;
+
     case 'merge':
         csrf_verify();
         requireMukhya();
@@ -210,9 +276,12 @@ switch ($action) {
             $stmt = $pdo->prepare("UPDATE parivar_feed SET vyakti_id = ? WHERE vyakti_id = ?");
             $stmt->execute([$primary_id, $duplicate_id]);
             
-            // Delete duplicate_id
-            $stmt = $pdo->prepare("DELETE FROM vyakti WHERE id = ? AND parivar_id = ?");
+            // Instead of deleting vyakti globally, we remove them from the parivar
+            $stmt = $pdo->prepare("DELETE FROM vyakti_parivar WHERE vyakti_id = ? AND parivar_id = ?");
             $stmt->execute([$duplicate_id, $parivar_id]);
+            
+            // Clean up orphaned vyakti (if they belong to 0 parivars)
+            $pdo->exec("DELETE FROM vyakti WHERE id NOT IN (SELECT vyakti_id FROM vyakti_parivar)");
             
             // Clean up any remaining self-relations (A is related to A) after IGNORE
             $pdo->prepare("DELETE FROM sambandh WHERE vyakti_a_id = vyakti_b_id")->execute();

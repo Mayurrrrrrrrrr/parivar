@@ -12,6 +12,14 @@ $parivar_id = getParivarId();
     <h2>नया सदस्य जोड़ें</h2>
     <p style="color: #666; margin-bottom: 1.5rem;">परिवार के किसी भी सदस्य की जानकारी यहाँ दर्ज करें।</p>
 
+    <div class="login-tabs" style="max-width: 400px; margin-bottom: 24px;">
+        <button class="login-tab active" onclick="switchTab('new')" id="tab_new">नया सदस्य</button>
+        <button class="login-tab" onclick="switchTab('link')" id="tab_link">प्रोफ़ाइल लिंक करें</button>
+    </div>
+
+    <div id="form_new">
+
+
     <form action="/api/vyakti.php?action=banao" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
         
@@ -145,7 +153,87 @@ $parivar_id = getParivarId();
             <button type="submit" class="btn btn-primary">सदस्य सुरक्षित करें</button>
         </div>
     </form>
+    </div> <!-- End form_new -->
+
+    <div id="form_link" style="display: none;">
+        <div style="background: rgba(6, 214, 160, 0.1); border-left: 4px solid var(--rang-safal); padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="font-size: 13px; color: var(--text-secondary);"><i class="ti ti-info-circle"></i> यदि वह व्यक्ति पहले से किसी अन्य परिवार के पोर्टल पर जुड़ा है, तो उनका नया प्रोफ़ाइल बनाने के बजाय उनका <b>शेयर कोड</b> यहाँ डालें। इससे उनकी जानकारी दोनों परिवारों में साझा रहेगी।</p>
+        </div>
+        
+        <form action="/api/vyakti.php?action=link_profile" method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+            
+            <div class="form-group">
+                <label>प्रोफ़ाइल शेयर कोड *</label>
+                <input type="text" name="share_code" class="form-control" required placeholder="VK-XXXXXX" style="font-family: monospace; font-size: 16px; text-transform: uppercase;">
+                <small style="color:var(--text-muted)">जिस व्यक्ति को जोड़ना है, उनकी प्रोफ़ाइल से यह कोड मांगें।</small>
+            </div>
+
+            <div class="divider"></div>
+
+            <div style="grid-column: span 2;">
+                <p style="font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--rang-pramukh);">विस्तृत संबंध (जैसे पति, दामाद, बहू आदि)</p>
+            </div>
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label>संबंधी चुनें (आपके परिवार का सदस्य)</label>
+                <select name="relative_id" class="form-control">
+                    <option value="">— चुनें —</option>
+                    <?php foreach ($all_members as $m): ?>
+                        <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>लिंक होने वाला व्यक्ति उनका क्या है?</label>
+                <select name="relative_relation" class="form-control">
+                    <option value="">— संबंध चुनें —</option>
+                    <option value="pati">पति</option>
+                    <option value="patni">पत्नी</option>
+                    <option value="bhai">भाई</option>
+                    <option value="behen">बहन</option>
+                    <option value="mama">मामा</option>
+                    <option value="mami">मामी</option>
+                    <option value="mausi">मौसी</option>
+                    <option value="mausa">मौसा</option>
+                    <option value="chacha">चाचा</option>
+                    <option value="chachi">चाची</option>
+                    <option value="taau">ताऊ</option>
+                    <option value="tai">ताई</option>
+                    <option value="bua">बुआ</option>
+                    <option value="fufa">फूफा</option>
+                    <option value="sasur">ससुर</option>
+                    <option value="saas">सास</option>
+                    <option value="sala">साला</option>
+                    <option value="sali">साली</option>
+                    <option value="jija">जीजा</option>
+                    <option value="bhabhi">भाभी</option>
+                    <option value="devar">देवर</option>
+                    <option value="damad">दामाद</option>
+                    <option value="bahu">बहू</option>
+                    <option value="samdhi">समधी</option>
+                    <option value="samdhan">समधन</option>
+                    <option value="dada">दादा</option>
+                    <option value="dadi">दादी</option>
+                    <option value="nana">नाना</option>
+                    <option value="nani">नानी</option>
+                </select>
+            </div>
+            
+            <div style="margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--rang-safal), #118AB2);">प्रोफ़ाइल लिंक करें</button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script>
+    function switchTab(tab) {
+        document.getElementById('form_new').style.display = tab === 'new' ? 'block' : 'none';
+        document.getElementById('form_link').style.display = tab === 'link' ? 'block' : 'none';
+        document.getElementById('tab_new').classList.toggle('active', tab === 'new');
+        document.getElementById('tab_link').classList.toggle('active', tab === 'link');
+    }
+</script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
