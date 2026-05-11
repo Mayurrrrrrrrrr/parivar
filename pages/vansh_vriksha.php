@@ -54,12 +54,16 @@ requireLogin();
         g = svg.append("g");
 
         zoom = d3.zoom()
-            .scaleExtent([0.1, 3])
+            .scaleExtent([0.1, 4])
             .on("zoom", (event) => {
                 g.attr("transform", event.transform);
             });
 
         svg.call(zoom);
+        
+        // Initial zoom for mobile readability
+        const initialScale = window.innerWidth < 600 ? 1.2 : 1;
+        svg.call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(initialScale));
 
         const nodes = data.nodes;
         const links = data.edges;
@@ -184,10 +188,10 @@ requireLogin();
             .attr("d", d => {
                 // If trunk (generation 0), draw a root base
                 if (d.generation === 0) {
-                    return "M-20,20 Q0,-20 20,20 Z"; 
+                    return "M-25,25 Q0,-25 25,25 Z"; 
                 }
                 // Standard leaf: stem at bottom, tip at top
-                return "M0,15 C-20,5 -15,-15 0,-25 C15,-15 20,5 0,15 Z";
+                return "M0,20 C-25,5 -20,-20 0,-35 C20,-20 25,5 0,20 Z";
             })
             .attr("fill", d => {
                 if (!d.jeevit) return "#D2691E"; // Autumn Orange for deceased
@@ -199,11 +203,11 @@ requireLogin();
 
         node.append("text")
             .attr("text-anchor", "middle")
-            .attr("dy", "32px")
+            .attr("dy", "38px")
             .attr("fill", "var(--text-primary)")
-            .attr("font-size", "11px")
-            .attr("font-weight", "bold")
-            .style("text-shadow", "0 1px 3px rgba(255,255,255,0.8)")
+            .attr("font-size", "14px")
+            .attr("font-weight", "800")
+            .style("text-shadow", "0 1px 3px rgba(255,255,255,1), 0 0 5px rgba(255,255,255,0.8)")
             .text(d => d.name);
 
         simulation.on("tick", () => {
