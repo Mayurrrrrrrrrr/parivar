@@ -12,7 +12,7 @@ $parivar_id = getParivarId();
     <h2>नया सदस्य जोड़ें</h2>
     <p style="color: #666; margin-bottom: 1.5rem;">परिवार के किसी भी सदस्य की जानकारी यहाँ दर्ज करें।</p>
 
-    <form action="/parivar/api/vyakti.php?action=banao" method="POST" enctype="multipart/form-data">
+    <form action="/api/vyakti.php?action=banao" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">

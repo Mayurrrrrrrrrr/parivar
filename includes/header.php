@@ -55,7 +55,7 @@ requireLogin();
     </script>
 
     <!-- App Styles -->
-    <link rel="stylesheet" href="/parivar/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
 

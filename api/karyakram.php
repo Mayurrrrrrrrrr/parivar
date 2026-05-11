@@ -51,7 +51,7 @@ switch ($action) {
         $stmt = $pdo->prepare("INSERT INTO karyakram (parivar_id, vyakti_id, shirshak, prakar, tithi_gregorian, tithi_vs, punravrutti_prakar) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([$parivar_id, $vyakti_id, $shirshak, $prakar, $gregorian, $vs, $punravrutti_prakar]);
         
-        header('Location: /parivar/pages/karyakram.php?success=1');
+        header('Location: /pages/karyakram.php?success=1');
         exit;
 
     default:

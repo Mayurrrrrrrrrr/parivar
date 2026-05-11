@@ -20,7 +20,7 @@ function isSadasy(): bool {
 
 function requireLogin(): void {
     if (!isLoggedIn()) {
-        header('Location: /parivar/index.php?error=login_required');
+        header('Location: /index.php?error=login_required');
         exit;
     }
 }
@@ -28,7 +28,7 @@ function requireLogin(): void {
 function requireMukhya(): void {
     requireLogin();
     if (!isMukhya()) {
-        header('Location: /parivar/pages/dashboard.php?error=adhikar_nahi');
+        header('Location: /pages/dashboard.php?error=adhikar_nahi');
         exit;
     }
 }

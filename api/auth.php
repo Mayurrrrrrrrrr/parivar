@@ -25,7 +25,7 @@ function handleLogin($pdo) {
     $password = $_POST['password'] ?? '';
     
     if (empty($email) || empty($password)) {
-        header('Location: /parivar/index.php?error=khaali_fields');
+        header('Location: /index.php?error=khaali_fields');
         exit;
     }
     
@@ -38,11 +38,11 @@ function handleLogin($pdo) {
         $_SESSION['parivar_id'] = $user['parivar_id'];
         $_SESSION['naam'] = $user['naam'];
         $_SESSION['bhumika'] = $user['bhumika'];
-        header('Location: /parivar/pages/dashboard.php');
+        header('Location: /pages/dashboard.php');
         exit;
     }
     
-    header('Location: /parivar/index.php?error=galat_login');
+    header('Location: /index.php?error=galat_login');
     exit;
 }
 
@@ -65,10 +65,10 @@ function handleRegister($pdo) {
         $stmt->execute([$parivar_id, $user_naam, $email, $password]);
         
         $pdo->commit();
-        header('Location: /parivar/index.php?success=1');
+        header('Location: /index.php?success=1');
     } catch (Exception $e) {
         $pdo->rollBack();
-        header('Location: /parivar/index.php?error=banao_fail');
+        header('Location: /index.php?error=banao_fail');
     }
     exit;
 }
@@ -87,15 +87,15 @@ function handleJoin($pdo) {
     if ($parivar) {
         $stmt = $pdo->prepare("INSERT INTO users (parivar_id, naam, email, password_hash, bhumika) VALUES (?, ?, ?, ?, 'sadasy')");
         $stmt->execute([$parivar['id'], $user_naam, $email, $password]);
-        header('Location: /parivar/index.php?success=1');
+        header('Location: /index.php?success=1');
     } else {
-        header('Location: /parivar/index.php?error=code_galat');
+        header('Location: /index.php?error=code_galat');
     }
     exit;
 }
 
 function handleLogout() {
     session_destroy();
-    header('Location: /parivar/index.php');
+    header('Location: /index.php');
     exit;
 }

@@ -64,7 +64,7 @@ switch ($action) {
             $stmt_dup = $pdo->prepare("SELECT id FROM vyakti WHERE parivar_id = ? AND pratham_naam = ? AND kul_naam = ? AND ling = ? AND janm_tithi_gregorian <=> ?");
             $stmt_dup->execute([$parivar_id, $pratham, $kul, $ling, $gregorian_for_check]);
             if ($stmt_dup->fetchColumn()) {
-                header('Location: /parivar/pages/dashboard.php?error=duplicate_entry');
+                header('Location: /pages/dashboard.php?error=duplicate_entry');
                 exit;
             }
 
@@ -165,10 +165,10 @@ switch ($action) {
             }
 
             $pdo->commit();
-            header('Location: /parivar/pages/dashboard.php?success=sadasy_joda');
+            header('Location: /pages/dashboard.php?success=sadasy_joda');
         } catch (Exception $e) {
             $pdo->rollBack();
-            header('Location: /parivar/pages/sadasy_banao.php?error=fail');
+            header('Location: /pages/sadasy_banao.php?error=fail');
         }
         exit;
 
@@ -180,7 +180,7 @@ switch ($action) {
         $duplicate_id = $_POST['duplicate_id'] ?? 0;
         
         if (!$primary_id || !$duplicate_id || $primary_id == $duplicate_id) {
-            header('Location: /parivar/pages/merge_vyakti.php?error=invalid_selection');
+            header('Location: /pages/merge_vyakti.php?error=invalid_selection');
             exit;
         }
 
@@ -218,10 +218,10 @@ switch ($action) {
             $pdo->prepare("DELETE FROM sambandh WHERE vyakti_a_id = vyakti_b_id")->execute();
             
             $pdo->commit();
-            header('Location: /parivar/pages/dashboard.php?success=merged');
+            header('Location: /pages/dashboard.php?success=merged');
         } catch (Exception $e) {
             $pdo->rollBack();
-            header('Location: /parivar/pages/merge_vyakti.php?error=fail');
+            header('Location: /pages/merge_vyakti.php?error=fail');
         }
         exit;
 

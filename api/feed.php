@@ -26,7 +26,7 @@ switch ($action) {
         $sandesh = trim($_POST['sandesh'] ?? '');
         
         if (empty($sandesh)) {
-            header('Location: /parivar/pages/parivar_feed.php?error=khaali');
+            header('Location: /pages/parivar_feed.php?error=khaali');
             exit;
         }
 
@@ -38,7 +38,7 @@ switch ($action) {
         $stmt = $pdo->prepare("INSERT INTO parivar_feed (parivar_id, user_id, sandesh, photo_url) VALUES (?, ?, ?, ?)");
         $stmt->execute([$parivar_id, $user_id, $sandesh, $photo_url]);
         
-        header('Location: /parivar/pages/parivar_feed.php?success=1');
+        header('Location: /pages/parivar_feed.php?success=1');
         exit;
 
     case 'react':

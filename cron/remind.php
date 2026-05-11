@@ -1,7 +1,7 @@
 <?php
 /**
  * कार्यक्रम स्मरण — cron job
- * Cron: 0 8 * * * php /var/www/html/parivar/cron/remind.php
+ * Cron: 0 8 * * * php /var/www/html/cron/remind.php
  */
 require_once __DIR__ . '/../config/db.php';
 

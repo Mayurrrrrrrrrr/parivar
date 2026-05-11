@@ -23,14 +23,14 @@ switch ($action) {
         $parivar_naam = trim($_POST['parivar_naam'] ?? '');
         
         if (empty($parivar_naam)) {
-            header('Location: /parivar/pages/settings.php?error=khaali');
+            header('Location: /pages/settings.php?error=khaali');
             exit;
         }
 
         $stmt = $pdo->prepare("UPDATE parivar SET parivar_naam = ? WHERE id = ?");
         $stmt->execute([$parivar_naam, $parivar_id]);
         
-        header('Location: /parivar/pages/settings.php?success=upadat_hua');
+        header('Location: /pages/settings.php?success=upadat_hua');
         exit;
 
     default:

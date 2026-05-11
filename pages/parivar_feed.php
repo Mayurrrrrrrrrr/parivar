@@ -30,7 +30,7 @@ $feeds = $stmt->fetchAll();
     
     <!-- New Post Box -->
     <div class="card" style="background:var(--bg-card); border-radius:16px; padding:16px; margin-bottom:20px; border:0.5px solid var(--seemant);">
-        <form action="/parivar/api/feed.php?action=banao" method="POST" enctype="multipart/form-data">
+        <form action="/api/feed.php?action=banao" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
             <textarea name="sandesh" class="form-control hindi-type" placeholder="आज क्या साझा करना चाहते हैं?" style="min-height:80px; border:none; background:transparent; padding:0;"></textarea>
             <div class="divider"></div>
@@ -56,7 +56,7 @@ $feeds = $stmt->fetchAll();
             </div>
             <div class="feed-card-body"><?php echo nl2br(s($f['sandesh'])); ?></div>
             <?php if ($f['photo_url']): ?>
-                <img src="/parivar/<?php echo $f['photo_url']; ?>" class="feed-card-photo">
+                <img src="/<?php echo $f['photo_url']; ?>" class="feed-card-photo">
             <?php endif; ?>
             
             <div class="feed-reactions">
@@ -71,7 +71,7 @@ $feeds = $stmt->fetchAll();
 
 <script>
     function react(postId, emoji) {
-        fetch('/parivar/api/feed.php?action=react', {
+        fetch('/api/feed.php?action=react', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: `post_id=${postId}&emoji=${emoji}&csrf_token=<?php echo csrf_token(); ?>`

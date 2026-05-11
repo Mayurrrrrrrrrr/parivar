@@ -11,7 +11,7 @@ $stmt->execute([$parivar_id]);
 $vyaktis = $stmt->fetchAll();
 ?>
 <header class="app-header">
-    <a href="/parivar/pages/settings.php" class="back-btn"><i class="fa fa-arrow-left"></i></a>
+    <a href="/pages/settings.php" class="back-btn"><i class="fa fa-arrow-left"></i></a>
     <h1>व्यक्ति मर्ज करें</h1>
 </header>
 <div class="page-content">
@@ -30,7 +30,7 @@ $vyaktis = $stmt->fetchAll();
             'डुप्लीकेट प्रोफाइल' की सभी जानकारी 'मुख्य प्रोफाइल' में जुड़ जाएगी, और फिर डुप्लीकेट प्रोफाइल मिटा दिया जाएगा।
         </p>
 
-        <form action="/parivar/api/vyakti.php?action=merge" method="POST">
+        <form action="/api/vyakti.php?action=merge" method="POST">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrf_token()) ?>">
             
             <div class="form-group">

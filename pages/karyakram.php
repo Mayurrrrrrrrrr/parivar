@@ -50,7 +50,7 @@ if ($action === 'list') {
     <?php else: ?>
         <div class="card" style="background:var(--bg-card); border-radius:16px; padding:20px; box-shadow:var(--shadow-floating);">
             <h3 style="margin-bottom:20px">नया कार्यक्रम जोड़ें</h3>
-            <form action="/parivar/api/karyakram.php?action=banao" method="POST">
+            <form action="/api/karyakram.php?action=banao" method="POST">
                 <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                 
                 <div class="form-group">
@@ -98,7 +98,7 @@ if ($action === 'list') {
             document.getElementById('tithi_gregorian').addEventListener('change', function() {
                 const date = this.value;
                 if (!date) return;
-                fetch(`/parivar/api/panchang.php?action=convert&gregorian=${date}`)
+                fetch(`/api/panchang.php?action=convert&gregorian=${date}`)
                     .then(r => r.json())
                     .then(data => {
                         if (data.safalta) {

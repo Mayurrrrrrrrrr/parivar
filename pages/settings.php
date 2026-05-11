@@ -61,7 +61,7 @@ $family_code = $parivar['parivar_code'];
     </a>
 
     <div class="card" style="background:var(--bg-card); border-radius:12px; padding:16px; border:0.5px solid var(--seemant);">
-        <form action="/parivar/api/family.php?action=update" method="POST">
+        <form action="/api/family.php?action=update" method="POST">
             <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
             <div class="form-group">
                 <label>परिवार का नाम</label>
@@ -88,7 +88,7 @@ $family_code = $parivar['parivar_code'];
 
     <div class="divider"></div>
     
-    <a href="/parivar/api/auth.php?action=logout" class="btn btn-ghost" style="color:var(--rang-asafal); border-color:rgba(226,75,74,0.3)">
+    <a href="/api/auth.php?action=logout" class="btn btn-ghost" style="color:var(--rang-asafal); border-color:rgba(226,75,74,0.3)">
         <i class="ti ti-logout"></i> लॉगआउट करें
     </a>
 

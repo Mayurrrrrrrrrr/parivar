@@ -10,7 +10,7 @@ function replaceInDir($dir) {
             $ext = pathinfo($path, PATHINFO_EXTENSION);
             if (in_array($ext, ['php', 'css', 'js', 'html', 'md', 'sh'])) {
                 $content = file_get_contents($path);
-                $newContent = str_replace('/parivar/', '/', $content);
+                $newContent = str_replace('/', '/', $content);
                 if ($newContent !== $content) {
                     file_put_contents($path, $newContent);
                     echo "Fixed: $path\n";
