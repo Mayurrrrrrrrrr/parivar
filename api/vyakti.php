@@ -21,7 +21,7 @@ switch ($action) {
         break;
 
     case 'tree':
-        $req_parivar_id = $_GET['parivar_id'] ?? $parivar_id;
+        $req_parivar_id = !empty($_GET['parivar_id']) ? $_GET['parivar_id'] : $parivar_id;
         
         // Nodes for D3.js
         $stmt = $pdo->prepare("SELECT v.id, v.pratham_naam as name, v.kul_naam, v.ling, v.jeevit, v.photo_url FROM vyakti v JOIN vyakti_parivar vp ON v.id = vp.vyakti_id WHERE vp.parivar_id = ?");
