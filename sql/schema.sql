@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS vyakti (
   phone VARCHAR(15),
   email VARCHAR(150),
   vartaman_sheher VARCHAR(200) COMMENT 'वर्तमान शहर',
+  share_code VARCHAR(12) UNIQUE COMMENT 'Profile link code',
   
   -- अन्य
   photo_url VARCHAR(500),
@@ -71,6 +72,16 @@ CREATE TABLE IF NOT EXISTS vyakti (
   banaya_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
+  FOREIGN KEY (parivar_id) REFERENCES parivar(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3.5. व्यक्ति परिवार लिंकिंग (vyakti_parivar)
+CREATE TABLE IF NOT EXISTS vyakti_parivar (
+  vyakti_id INT NOT NULL,
+  parivar_id INT NOT NULL,
+  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (vyakti_id, parivar_id),
+  FOREIGN KEY (vyakti_id) REFERENCES vyakti(id) ON DELETE CASCADE,
   FOREIGN KEY (parivar_id) REFERENCES parivar(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -142,6 +153,18 @@ CREATE TABLE IF NOT EXISTS parivar_feed (
   banaya_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
   FOREIGN KEY (parivar_id) REFERENCES parivar(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6.5. परिवार फ़ीड प्रतिक्रिया (parivar_feed_reactions)
+CREATE TABLE IF NOT EXISTS parivar_feed_reactions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  feed_id INT NOT NULL,
+  user_id INT NOT NULL,
+  reaction_type ENUM('like', 'love', 'pray', 'sad') DEFAULT 'like',
+  banaya_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_reaction (feed_id, user_id),
+  FOREIGN KEY (feed_id) REFERENCES parivar_feed(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

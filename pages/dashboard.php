@@ -22,16 +22,10 @@ $stmt->execute([$parivar_id]);
 $upcoming = $stmt->fetchAll();
 
 // Panchang Info (Today)
-$today = date('Y-m-d');
-$panchang_data = [];
-$ch = curl_init("https://parivar.yuktaa.com/api/panchang.php?action=convert&gregorian=$today");
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-$res = curl_exec($ch);
-if ($res) {
-    $pj = json_decode($res, true);
-    if ($pj && $pj['safalta']) $panchang_data = $pj['data'];
-}
-curl_close($ch);
+$d = (int)date('d');
+$m = (int)date('m');
+$y = (int)date('Y');
+$panchang_data = gregorianToVS($d, $m, $y);
 ?>
 
 <header class="app-header">

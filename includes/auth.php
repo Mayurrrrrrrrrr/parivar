@@ -18,9 +18,14 @@ function isSadasy(): bool {
     return isLoggedIn() && ($_SESSION['bhumika'] ?? '') === 'sadasy';
 }
 
+function getBasePath() {
+    $path = str_replace(['\\', '/pages', '/api', '/includes', '/cron'], ['/', '', '', '', ''], dirname($_SERVER['SCRIPT_NAME']));
+    return rtrim($path, '/') . '/';
+}
+
 function requireLogin(): void {
     if (!isLoggedIn()) {
-        header('Location: /index.php?error=login_required');
+        header('Location: ' . getBasePath() . 'index.php?error=login_required');
         exit;
     }
 }
@@ -28,7 +33,7 @@ function requireLogin(): void {
 function requireMukhya(): void {
     requireLogin();
     if (!isMukhya()) {
-        header('Location: /pages/dashboard.php?error=adhikar_nahi');
+        header('Location: ' . getBasePath() . 'pages/dashboard.php?error=adhikar_nahi');
         exit;
     }
 }

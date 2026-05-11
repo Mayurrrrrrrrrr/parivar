@@ -2,10 +2,16 @@
 /**
  * डेटाबेस कनेक्शन — परिवार पोर्टल
  */
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'parivar');
-define('DB_USER', 'root');
-define('DB_PASS', 'asjhb5465%&55fss'); // updated with server password
+$envFile = __DIR__ . '/../.env';
+$env = [];
+if (file_exists($envFile)) {
+    $env = parse_ini_file($envFile);
+}
+
+define('DB_HOST', $env['DB_HOST'] ?? 'localhost');
+define('DB_NAME', $env['DB_NAME'] ?? 'parivar');
+define('DB_USER', $env['DB_USER'] ?? 'root');
+define('DB_PASS', $env['DB_PASS'] ?? '');
 define('DB_CHARSET', 'utf8mb4');
 
 try {
