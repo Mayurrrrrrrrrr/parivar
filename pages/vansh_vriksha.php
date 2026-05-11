@@ -116,39 +116,51 @@ requireLogin();
         
         nodes.forEach(d => { if (d.generation === null) d.generation = 0; });
 
-        // 2. Force simulation with Y constraint based on generation
+        // 2. Botanical Physics Engine
         const maxGen = d3.max(nodes, d => d.generation) || 0;
         
+        // Custom forces for a tree-like shape
         const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(validLinks).id(d => d.id).distance(100))
-            .force("charge", d3.forceManyBody().strength(-800))
-            .force("x", d3.forceX(width / 2).strength(0.05))
-            .force("y", d3.forceY(d => height - 100 - (d.generation * 160)).strength(1)); // Base at bottom, grows UP
+            .force("link", d3.forceLink(validLinks).id(d => d.id).distance(80))
+            .force("charge", d3.forceManyBody().strength(-400)) // Repel nodes
+            .force("collide", d3.forceCollide().radius(25).iterations(2)) // Prevent overlap
+            .force("x", d3.forceX(width / 2).strength(0.02)) // Very gentle pull to center
+            .force("y", d3.forceY(d => {
+                // Root is at the bottom, higher generations grow upwards
+                return height - 100 - (d.generation * 130);
+            }).strength(1)); // Strict Y anchoring
 
         // Map relation types to colors/styles
-        function getLinkStyle(type) {
-            if (type === 'pati' || type === 'patni') return { stroke: '#FF9F1C', dash: '3,3', width: 2.5, type: 'vine' };
-            return { stroke: 'url(#branchGradient)', dash: '0', width: 4, type: 'branch' };
+        function getLinkStyle(d) {
+            const type = d.sambandh_prakar;
+            if (type === 'pati' || type === 'patni') {
+                return { stroke: '#FF9F1C', dash: '4,4', width: 2, type: 'vine' };
+            }
+            
+            // Branch thickness based on generation (older = thicker)
+            const minGen = Math.min(d.source.generation || 0, d.target.generation || 0);
+            const thickness = Math.max(2, 16 - (minGen * 2.5));
+            return { stroke: 'url(#branchGradient)', dash: '0', width: thickness, type: 'branch' };
         }
 
-        // Add SVG definitions for gradients
+        // Add SVG definitions for gradients & leaf paths
         const defs = svg.append("defs");
         const gradient = defs.append("linearGradient")
             .attr("id", "branchGradient")
             .attr("x1", "0%").attr("y1", "100%") // Bottom (Root)
             .attr("x2", "0%").attr("y2", "0%");  // Top (Leaves)
-        gradient.append("stop").attr("offset", "0%").attr("stop-color", "#8B5A2B"); // Brown Trunk
-        gradient.append("stop").attr("offset", "100%").attr("stop-color", "#4CAF50"); // Green Branches
+        gradient.append("stop").attr("offset", "0%").attr("stop-color", "#5C4033"); // Dark Wood
+        gradient.append("stop").attr("offset", "100%").attr("stop-color", "#6B8E23"); // Olive Green
 
         const link = g.append("g")
             .selectAll("path")
             .data(validLinks)
             .join("path")
             .attr("fill", "none")
-            .attr("stroke", d => getLinkStyle(d.sambandh_prakar).stroke)
-            .attr("stroke-width", d => getLinkStyle(d.sambandh_prakar).width)
-            .attr("stroke-dasharray", d => getLinkStyle(d.sambandh_prakar).dash)
-            .style("opacity", 0.8);
+            .attr("stroke", d => getLinkStyle(d).stroke)
+            .attr("stroke-width", d => getLinkStyle(d).width)
+            .attr("stroke-dasharray", d => getLinkStyle(d).dash)
+            .style("opacity", 0.85);
 
         const node = g.append("g")
             .selectAll("g")
@@ -159,37 +171,53 @@ requireLogin();
                 window.location.href = `vyakti.php?id=${d.id}`;
             });
 
-        node.append("circle")
-            .attr("r", 24)
-            .attr("fill", d => {
-                if (!d.jeevit) return "#888";
-                return d.ling === 'stri' ? "#e83e8c" : "var(--rang-pramukh)";
+        // Draw leaf paths instead of circles
+        node.append("path")
+            .attr("d", d => {
+                // If trunk (generation 0), draw a root base
+                if (d.generation === 0) {
+                    return "M-20,20 Q0,-20 20,20 Z"; 
+                }
+                // Standard leaf: stem at bottom, tip at top
+                return "M0,15 C-20,5 -15,-15 0,-25 C15,-15 20,5 0,15 Z";
             })
-            .attr("stroke", "white")
-            .attr("stroke-width", 2)
-            .style("filter", "drop-shadow(0 4px 6px rgba(0,0,0,0.1))");
+            .attr("fill", d => {
+                if (!d.jeevit) return "#D2691E"; // Autumn Orange for deceased
+                return d.ling === 'stri' ? "#9ACD32" : "#228B22"; // Yellow-Green for female, Forest Green for male
+            })
+            .attr("stroke", "#ffffff")
+            .attr("stroke-width", 1.5)
+            .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.2))");
 
         node.append("text")
             .attr("text-anchor", "middle")
-            .attr("dy", "42px")
+            .attr("dy", "32px")
             .attr("fill", "var(--text-primary)")
-            .attr("font-size", "13px")
-            .attr("font-weight", "600")
+            .attr("font-size", "11px")
+            .attr("font-weight", "bold")
+            .style("text-shadow", "0 1px 3px rgba(255,255,255,0.8)")
             .text(d => d.name);
 
         simulation.on("tick", () => {
+            // Anchor roots to exactly horizontal center bottom
+            nodes.forEach(d => {
+                if (d.generation === 0) {
+                    d.fy = height - 50;
+                }
+            });
+
             link.attr("d", d => {
                 const sourceX = d.source ? d.source.x : 0;
                 const sourceY = d.source ? d.source.y : 0;
                 const targetX = d.target ? d.target.x : 0;
                 const targetY = d.target ? d.target.y : 0;
 
-                // Mycelium vine for spouses
+                // Mycelium vine for spouses (horizontal intertwining)
                 if (d.sambandh_prakar === 'pati' || d.sambandh_prakar === 'patni') {
-                    return `M${sourceX},${sourceY} Q${(sourceX+targetX)/2},${sourceY-40} ${targetX},${targetY}`;
+                    return `M${sourceX},${sourceY} Q${(sourceX+targetX)/2},${sourceY-30} ${targetX},${targetY}`;
                 }
 
-                // Vertical organic branches for parent/child
+                // Botanical branch (curved upward)
                 return `M${sourceX},${sourceY} C${sourceX},${(sourceY+targetY)/2} ${targetX},${(sourceY+targetY)/2} ${targetX},${targetY}`;
             });
 
