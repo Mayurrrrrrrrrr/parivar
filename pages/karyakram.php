@@ -24,7 +24,6 @@ if ($action === 'list') {
           ) as next_date
         FROM karyakram k LEFT JOIN vyakti v ON k.vyakti_id = v.id 
         WHERE k.parivar_id = ? 
-        HAVING next_date >= CURDATE()
         ORDER BY next_date ASC
     ";
     $stmt = $pdo->prepare($sql_upcoming);
