@@ -49,6 +49,66 @@ switch ($action) {
         ]);
         break;
 
+    case 'tree_full':
+        $req_parivar_id = !empty($_GET['parivar_id'])
+            ? (int)$_GET['parivar_id']
+            : $parivar_id;
+
+        $stmt = $pdo->prepare("
+            SELECT
+                v.id,
+                v.pratham_naam            AS name,
+                v.kul_naam,
+                v.ling,
+                v.jeevit,
+                v.photo_url,
+                v.gotra,
+                YEAR(v.janm_tithi_gregorian) AS birth_year
+            FROM vyakti v
+            JOIN vyakti_parivar vp ON v.id = vp.vyakti_id
+            WHERE vp.parivar_id = ?
+            ORDER BY v.janm_tithi_gregorian ASC, v.id ASC
+        ");
+        $stmt->execute([$req_parivar_id]);
+        $nodes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($nodes as &$n) {
+            $n['id']         = (int)$n['id'];
+            $n['jeevit']     = (int)$n['jeevit'];
+            $n['birth_year'] = $n['birth_year'] ? (int)$n['birth_year'] : null;
+            $st = $pdo->prepare("
+                SELECT p.id, p.naam FROM vyakti_parivar vp
+                JOIN parivar p ON vp.parivar_id = p.id
+                WHERE vp.vyakti_id = ? AND vp.parivar_id != ?
+            ");
+            $st->execute([$n['id'], $req_parivar_id]);
+            $n['other_parivars'] = $st->fetchAll(PDO::FETCH_ASSOC);
+        }
+        unset($n);
+
+        $stmt = $pdo->prepare("
+            SELECT s.id, s.vyakti_a_id, s.vyakti_b_id,
+                   s.sambandh_prakar, s.vivah_tithi_gregorian, s.vivah_tithi_vs
+            FROM sambandh s
+            JOIN vyakti_parivar vp1 ON s.vyakti_a_id = vp1.vyakti_id
+            JOIN vyakti_parivar vp2 ON s.vyakti_b_id = vp2.vyakti_id
+            WHERE vp1.parivar_id = ? AND vp2.parivar_id = ?
+        ");
+        $stmt->execute([$req_parivar_id, $req_parivar_id]);
+        $edges = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($edges as &$e) {
+            $e['vyakti_a_id'] = (int)$e['vyakti_a_id'];
+            $e['vyakti_b_id'] = (int)$e['vyakti_b_id'];
+        }
+        unset($e);
+
+        echo json_encode([
+            'safalta' => true,
+            'data'    => ['nodes' => $nodes, 'edges' => $edges]
+        ], JSON_UNESCAPED_UNICODE);
+        break;
+
     case 'banao':
         csrf_verify();
         $pratham = $_POST['pratham_naam'] ?? '';

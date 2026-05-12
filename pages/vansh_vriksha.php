@@ -1,260 +1,508 @@
 <?php
 /**
- * वंश वृक्ष (v2.0) — D3.js Tree
+ * वंश वृक्ष (v3.0) — Proper Hierarchical Family Tree
  */
 require_once __DIR__ . '/../includes/header.php';
 requireLogin();
 ?>
 
-<header class="app-header">
-    <h1>🌳 वंश वृक्ष</h1>
-</header>
+<style>
+    body {
+        overflow: hidden;
+    }
 
-<div class="page-content" style="max-width: 100%; padding: 0;">
-    <div class="tree-container" id="tree-canvas">
-        <!-- SVG rendering area -->
+    .tree-page-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-main);
+        overflow: hidden;
+    }
+
+    .tree-toolbar {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        background: var(--bg-card);
+        border-bottom: 0.5px solid rgba(255, 107, 53, 0.12);
+        z-index: 100;
+        gap: 8px;
+    }
+
+    .tree-toolbar-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .tree-toolbar-actions {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+    }
+
+    .tree-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 7px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 107, 53, 0.2);
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+
+    .tree-btn:hover {
+        background: rgba(255, 107, 53, 0.1);
+        color: var(--rang-pramukh);
+    }
+
+    .tree-legend {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .legend-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    #tree-canvas {
+        flex: 1;
+        overflow: hidden;
+        cursor: grab;
+        position: relative;
+    }
+
+    #tree-canvas:active {
+        cursor: grabbing;
+    }
+
+    #tree-svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    .tree-loading {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-main);
+        z-index: 50;
+        gap: 16px;
+    }
+
+    .tree-loading-spinner {
+        width: 48px;
+        height: 48px;
+        border: 3px solid rgba(255, 107, 53, 0.15);
+        border-top-color: #FF6B35;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .tree-loading p {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .tree-empty {
+        position: absolute;
+        inset: 0;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .tree-empty i {
+        font-size: 56px;
+        color: var(--text-muted);
+        opacity: 0.3;
+    }
+
+    .tree-empty p {
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+
+    .tree-tooltip {
+        position: fixed;
+        background: #2C1810;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 9999;
+        display: none;
+        max-width: 200px;
+        line-height: 1.6;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] #tree-canvas {
+        background: #0F172A;
+    }
+</style>
+
+<div class="tree-page-wrapper">
+    <div class="tree-toolbar">
+        <a href="/pages/dashboard.php" style="color:var(--text-main);font-size:20px;text-decoration:none;flex-shrink:0">
+            <i class="ti ti-arrow-left"></i>
+        </a>
+        <div class="tree-toolbar-title">🌳 <span>वंश वृक्ष</span></div>
+        <div class="tree-toolbar-actions">
+            <div class="tree-legend" id="legend-bar" style="display:none">
+                <span class="legend-dot" style="background:#228B22"></span><span class="legend-label">पुरुष</span>
+                <span class="legend-dot" style="background:#C2185B"></span><span class="legend-label">महिला</span>
+                <span class="legend-dot" style="background:#8B4513"></span><span class="legend-label">दिवंगत</span>
+            </div>
+            <button class="tree-btn" onclick="zoomIn()"><i class="ti ti-zoom-in"></i></button>
+            <button class="tree-btn" onclick="zoomOut()"><i class="ti ti-zoom-out"></i></button>
+            <button class="tree-btn" onclick="resetView()"><i class="ti ti-home"></i></button>
+        </div>
     </div>
-    
-    <div class="tree-controls" style="padding: 0 16px;">
-        <button class="tree-btn active" onclick="resetZoom()">केंद्र में लाएं</button>
-        <button class="tree-btn" onclick="saveImage()">पिक्चर सेव करें</button>
+    <div id="tree-canvas">
+        <div class="tree-loading" id="tree-loading">
+            <div class="tree-loading-spinner"></div>
+            <p>वंश वृक्ष लोड हो रहा है...</p>
+        </div>
+        <div class="tree-empty" id="tree-empty">
+            <i class="ti ti-users-minus"></i>
+            <p>अभी कोई सदस्य नहीं जोड़ा गया।</p>
+            <a href="/pages/sadasy_banao.php" class="btn btn-primary"
+                style="width:auto;padding:8px 16px;font-size:13px">+ सदस्य जोड़ें</a>
+        </div>
+        <svg id="tree-svg"></svg>
     </div>
 </div>
+<div class="tree-tooltip" id="tree-tooltip"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script>
-    let svg, g, zoom;
+    const CARD_W = 130, CARD_H = 76, H_GAP = 40, V_GAP = 90, SPOUSE_GAP = 24;
+    let svg, mainG, zoomBehavior, treeData = null;
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const pid = urlParams.get('parivar_id') || '';
-        fetch(`../api/vyakti.php?action=tree&parivar_id=${pid}`)
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.innerWidth > 600) document.getElementById('legend-bar').style.display = 'flex';
+        const pid = new URLSearchParams(window.location.search).get('parivar_id') || '';
+        fetch(`../api/vyakti.php?action=tree_full&parivar_id=${pid}`)
             .then(r => r.json())
             .then(data => {
-                if (data.safalta && data.data && data.data.nodes && data.data.nodes.length > 0) {
-                    initTree(data.data);
+                document.getElementById('tree-loading').style.display = 'none';
+                if (data.safalta && data.data?.nodes?.length > 0) {
+                    treeData = data.data;
+                    buildTree(treeData);
                 } else {
-                    document.getElementById('tree-canvas').innerHTML = '<p style="padding: 20px; text-align: center;">वंश वृक्ष में अभी कोई सदस्य नहीं है।</p>';
+                    document.getElementById('tree-empty').style.display = 'flex';
                 }
             })
-            .catch(e => {
-                console.error('Error fetching tree data:', e);
-                document.getElementById('tree-canvas').innerHTML = '<p style="padding: 20px; text-align: center; color: red;">डेटा लोड करने में समस्या आई।</p>';
+            .catch(() => {
+                document.getElementById('tree-loading').innerHTML = '<p style="color:#E24B4A">डेटा लोड नहीं हुआ। पेज रिफ्रेश करें।</p>';
             });
     });
 
-    function initTree(data) {
-        const width = window.innerWidth;
-        const height = window.innerHeight - 150;
-
-        svg = d3.select("#tree-canvas").append("svg")
-            .attr("width", width)
-            .attr("height", height);
-
-        g = svg.append("g");
-
-        zoom = d3.zoom()
-            .scaleExtent([0.1, 4])
-            .on("zoom", (event) => {
-                g.attr("transform", event.transform);
-            });
-
-        svg.call(zoom);
-        
-        // Initial zoom for mobile readability
-        const initialScale = window.innerWidth < 600 ? 1.2 : 1;
-        svg.call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(initialScale));
-
+    function buildTree(data) {
         const nodes = data.nodes;
-        const links = data.edges;
+        const edges = data.edges;
+        d3.select('#tree-svg').selectAll('*').remove();
 
-        const nodeById = new Map(nodes.map(d => [d.id, d]));
-        links.forEach(l => {
-            l.source = nodeById.get(l.vyakti_a_id);
-            l.target = nodeById.get(l.vyakti_b_id);
+        const canvasEl = document.getElementById('tree-canvas');
+        const W = canvasEl.clientWidth, H = canvasEl.clientHeight;
+
+        svg = d3.select('#tree-svg').attr('width', W).attr('height', H);
+        const defs = svg.append('defs');
+
+        // Branch gradient (brown trunk → green branch)
+        const bg = defs.append('linearGradient').attr('id', 'branchGrad').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
+        bg.append('stop').attr('offset', '0%').attr('stop-color', '#8B5E3C').attr('stop-opacity', 0.8);
+        bg.append('stop').attr('offset', '100%').attr('stop-color', '#5C3A1E').attr('stop-opacity', 0.9);
+
+        // Spouse connector gradient
+        const sg = defs.append('linearGradient').attr('id', 'spouseGrad').attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '0%');
+        sg.append('stop').attr('offset', '0%').attr('stop-color', '#FF9F1C').attr('stop-opacity', 0.9);
+        sg.append('stop').attr('offset', '100%').attr('stop-color', '#FF6B35').attr('stop-opacity', 0.9);
+
+        // Card shadow filters
+        const f1 = defs.append('filter').attr('id', 'cardShadow').attr('x', '-20%').attr('y', '-20%').attr('width', '140%').attr('height', '140%');
+        f1.append('feDropShadow').attr('dx', 0).attr('dy', 3).attr('stdDeviation', 6).attr('flood-color', 'rgba(0,0,0,0.10)');
+        const f2 = defs.append('filter').attr('id', 'cardShadowHover').attr('x', '-30%').attr('y', '-30%').attr('width', '160%').attr('height', '160%');
+        f2.append('feDropShadow').attr('dx', 0).attr('dy', 6).attr('stdDeviation', 10).attr('flood-color', 'rgba(255,107,53,0.22)');
+
+        mainG = svg.append('g').attr('id', 'mainG');
+
+        const nodeById = new Map(nodes.map(n => [n.id, n]));
+        const childrenOf = new Map(), parentsOf = new Map(), spousesOf = new Map();
+
+        edges.forEach(e => {
+            const a = e.vyakti_a_id, b = e.vyakti_b_id, t = e.sambandh_prakar;
+            if (t === 'pita' || t === 'mata') {
+                if (!childrenOf.has(a)) childrenOf.set(a, []);
+                if (!childrenOf.get(a).includes(b)) childrenOf.get(a).push(b);
+                if (!parentsOf.has(b)) parentsOf.set(b, []);
+                if (!parentsOf.get(b).includes(a)) parentsOf.get(b).push(a);
+            }
+            if (t === 'putra' || t === 'putri') {
+                if (!childrenOf.has(a)) childrenOf.set(a, []);
+                if (!childrenOf.get(a).includes(b)) childrenOf.get(a).push(b);
+                if (!parentsOf.has(b)) parentsOf.set(b, []);
+                if (!parentsOf.get(b).includes(a)) parentsOf.get(b).push(a);
+            }
+            if (t === 'pati' || t === 'patni') { spousesOf.set(a, b); spousesOf.set(b, a); }
         });
-        const validLinks = links.filter(l => l.source && l.target);
 
-        // 1. Calculate Generations
-        nodes.forEach(d => d.generation = null);
-        
-        let normalizedEdges = [];
-        validLinks.forEach(l => {
-            if (l.sambandh_prakar === 'pita' || l.sambandh_prakar === 'mata') {
-                normalizedEdges.push({parent: l.source.id, child: l.target.id});
-            } else if (l.sambandh_prakar === 'putra' || l.sambandh_prakar === 'putri') {
-                normalizedEdges.push({parent: l.target.id, child: l.source.id});
+        // BFS generation assignment
+        const generation = new Map();
+        const visited = new Set();
+        const allChildren = new Set([...parentsOf.keys()]);
+        let roots = nodes.filter(n => !allChildren.has(n.id));
+        if (!roots.length) roots = [nodes[0]];
+
+        const queue = roots.map(r => ({ id: r.id, gen: 0 }));
+        while (queue.length) {
+            const { id, gen } = queue.shift();
+            if (visited.has(id)) continue;
+            visited.add(id); generation.set(id, gen);
+            const spouse = spousesOf.get(id);
+            if (spouse && !visited.has(spouse)) {
+                generation.set(spouse, gen); visited.add(spouse);
+                (childrenOf.get(spouse) || []).forEach(cid => { if (!visited.has(cid)) queue.push({ id: cid, gen: gen + 1 }); });
+            }
+            (childrenOf.get(id) || []).forEach(cid => { if (!visited.has(cid)) queue.push({ id: cid, gen: gen + 1 }); });
+        }
+        nodes.forEach(n => { if (!generation.has(n.id)) generation.set(n.id, 0); });
+
+        // Subtree width calculation
+        const subtreeWidth = new Map();
+        function calcW(id, vis2 = new Set()) {
+            if (vis2.has(id)) return CARD_W; vis2.add(id);
+            const children = childrenOf.get(id) || [];
+            const spouse = spousesOf.get(id);
+            if (!children.length) { const w = spouse ? CARD_W * 2 + SPOUSE_GAP : CARD_W; subtreeWidth.set(id, w); return w; }
+            let tw = 0; children.forEach(c => tw += (calcW(c, vis2) + H_GAP)); tw -= H_GAP;
+            const mw = spouse ? CARD_W * 2 + SPOUSE_GAP : CARD_W;
+            const w = Math.max(mw, tw); subtreeWidth.set(id, w); return w;
+        }
+        roots.forEach(r => calcW(r.id));
+
+        // Position assignment
+        const posX = new Map(), posY = new Map();
+        function assignPos(id, cx, genY, vis2 = new Set()) {
+            if (vis2.has(id)) return; vis2.add(id);
+            const spouse = spousesOf.get(id);
+            const y = genY + generation.get(id) * (CARD_H + V_GAP);
+            if (spouse && !posX.has(id) && !posX.has(spouse)) {
+                const nd = nodeById.get(id), sp = nodeById.get(spouse);
+                let L = id, R = spouse;
+                if (nd?.ling === 'stri') { L = spouse; R = id; }
+                posX.set(L, cx - CARD_W / 2 - SPOUSE_GAP / 2); posX.set(R, cx + CARD_W / 2 + SPOUSE_GAP / 2);
+                posY.set(L, y); posY.set(R, y); vis2.add(spouse);
+            } else if (!posX.has(id)) { posX.set(id, cx); posY.set(id, y); }
+            const children = childrenOf.get(id) || [];
+            if (!children.length) return;
+            let tw = 0; children.forEach(c => tw += (subtreeWidth.get(c) || CARD_W) + H_GAP); tw -= H_GAP;
+            let xc = cx - tw / 2;
+            children.forEach(c => {
+                const cw = subtreeWidth.get(c) || CARD_W;
+                assignPos(c, xc + cw / 2, genY, vis2);
+                xc += cw + H_GAP;
+            });
+        }
+        let rc = 0;
+        roots.forEach(r => { const rw = subtreeWidth.get(r.id) || CARD_W; assignPos(r.id, rc + rw / 2, 60); rc += rw + H_GAP * 3; });
+        nodes.forEach(n => { if (!posX.has(n.id)) { posX.set(n.id, rc + CARD_W / 2); posY.set(n.id, 60 + generation.get(n.id) * (CARD_H + V_GAP)); rc += CARD_W + H_GAP; } });
+
+        // Generation labels
+        const maxGen = Math.max(...generation.values());
+        const glG = mainG.append('g');
+        const genLabels = ['पूर्वज', 'प्रथम पीढ़ी', 'द्वितीय पीढ़ी', 'तृतीय पीढ़ी', 'चतुर्थ पीढ़ी'];
+        for (let g = 0; g <= maxGen; g++) {
+            const y = 60 + g * (CARD_H + V_GAP) + CARD_H / 2;
+            glG.append('line')
+                .attr('x1', -200).attr('y1', y).attr('x2', rc + 200).attr('y2', y)
+                .attr('stroke', 'rgba(255,107,53,0.04)').attr('stroke-width', CARD_H + V_GAP);
+            glG.append('text').attr('x', -24).attr('y', y)
+                .attr('text-anchor', 'end').attr('dominant-baseline', 'middle')
+                .attr('font-size', '9px').attr('font-weight', '700')
+                .attr('fill', '#9BA4B5').attr('letter-spacing', '0.5px')
+                .text((genLabels[g] || g + 'वीं पीढ़ी').toUpperCase());
+        }
+
+        // Draw edges
+        const edgeG = mainG.append('g');
+        const drawnSpouseEdges = new Set();
+        edges.forEach(e => {
+            const t = e.sambandh_prakar;
+            let pId = null, cId = null;
+            if (t === 'pita' || t === 'mata') { pId = e.vyakti_a_id; cId = e.vyakti_b_id; }
+            else if (t === 'putra' || t === 'putri') { pId = e.vyakti_a_id; cId = e.vyakti_b_id; }
+
+            if (pId && cId && posX.has(pId) && posX.has(cId)) {
+                const px = posX.get(pId), py = posY.get(pId) + CARD_H;
+                const cx = posX.get(cId), cy = posY.get(cId);
+                const midY = (py + cy) / 2;
+                const thickness = Math.max(1.5, 5 - (generation.get(cId) || 0) * 0.7);
+                edgeG.append('path')
+                    .attr('d', `M${px},${py} C${px},${midY} ${cx},${midY} ${cx},${cy}`)
+                    .attr('fill', 'none').attr('stroke', 'url(#branchGrad)')
+                    .attr('stroke-width', thickness).attr('stroke-linecap', 'round').attr('opacity', 0.7);
+            }
+
+            if ((t === 'pati' || t === 'patni') && posX.has(e.vyakti_a_id) && posX.has(e.vyakti_b_id)) {
+                const key = [e.vyakti_a_id, e.vyakti_b_id].sort().join('-');
+                if (drawnSpouseEdges.has(key)) return;
+                drawnSpouseEdges.add(key);
+                const ax = posX.get(e.vyakti_a_id), ay = posY.get(e.vyakti_a_id) + CARD_H / 2;
+                const bx = posX.get(e.vyakti_b_id);
+                const lx = Math.min(ax, bx) + CARD_W / 2, rx = Math.max(ax, bx) - CARD_W / 2;
+                const mx = (lx + rx) / 2, myOff = ay - 12;
+                edgeG.append('path')
+                    .attr('d', `M${lx},${ay} Q${mx},${myOff} ${rx},${ay}`)
+                    .attr('fill', 'none').attr('stroke', 'url(#spouseGrad)')
+                    .attr('stroke-width', 1.5).attr('stroke-dasharray', '5,3').attr('opacity', 0.65);
+                edgeG.append('text').attr('x', mx).attr('y', myOff - 5)
+                    .attr('text-anchor', 'middle').attr('font-size', '9px').attr('opacity', '0.5').text('♥');
             }
         });
 
-        let hasParent = new Set(normalizedEdges.map(e => e.child));
-        let roots = nodes.filter(n => !hasParent.has(n.id));
-        if (roots.length === 0 && nodes.length > 0) roots = [nodes[0]];
+        // Draw nodes
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const tooltip = document.getElementById('tree-tooltip');
+        const nodeG = mainG.append('g');
 
-        let queue = roots.map(r => { r.generation = 0; return r; });
-        while(queue.length > 0) {
-            let curr = queue.shift();
-            
-            // Children
-            let childrenIds = normalizedEdges.filter(e => e.parent === curr.id).map(e => e.child);
-            childrenIds.forEach(cid => {
-                let child = nodeById.get(cid);
-                if (child && child.generation === null) {
-                    child.generation = curr.generation + 1;
-                    queue.push(child);
-                }
-            });
-            
-            // Spouses
-            let spouseLinks = validLinks.filter(l => 
-                (l.source.id === curr.id || l.target.id === curr.id) && 
-                (l.sambandh_prakar === 'pati' || l.sambandh_prakar === 'patni')
-            );
-            spouseLinks.forEach(l => {
-                let spouseId = l.source.id === curr.id ? l.target.id : l.source.id;
-                let spouse = nodeById.get(spouseId);
-                if (spouse && spouse.generation === null) {
-                    spouse.generation = curr.generation;
-                    queue.push(spouse);
-                }
-            });
-        }
-        
-        nodes.forEach(d => { if (d.generation === null) d.generation = 0; });
+        nodes.forEach(n => {
+            if (!posX.has(n.id)) return;
+            const x = posX.get(n.id) - CARD_W / 2, y = posY.get(n.id);
+            const dead = !n.jeevit || n.jeevit == 0;
+            const female = n.ling === 'stri';
+            const accent = dead ? '#8B4513' : (female ? '#C2185B' : '#1A6B3C');
+            const cardBg = dead ? (isDark ? '#2D2015' : '#FDF3EB') : (female ? (isDark ? '#1E1328' : '#FDF0F6') : (isDark ? '#0F2318' : '#F0F9F4'));
+            const textC = isDark ? '#F1F5F9' : '#1E293B';
+            const subC = isDark ? '#94A3B8' : '#64748B';
 
-        // 2. Botanical Physics Engine
-        const maxGen = d3.max(nodes, d => d.generation) || 0;
-        
-        // Custom forces for a tree-like shape
-        const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(validLinks).id(d => d.id).distance(80))
-            .force("charge", d3.forceManyBody().strength(-400)) // Repel nodes
-            .force("collide", d3.forceCollide().radius(25).iterations(2)) // Prevent overlap
-            .force("x", d3.forceX(width / 2).strength(0.02)) // Very gentle pull to center
-            .force("y", d3.forceY(d => {
-                // Root is at the bottom, higher generations grow upwards
-                return height - 100 - (d.generation * 130);
-            }).strength(1)); // Strict Y anchoring
+            const fg = nodeG.append('g')
+                .attr('transform', `translate(${x},${y})`)
+                .style('cursor', 'pointer')
+                .on('click', () => window.location.href = `vyakti.php?id=${n.id}`)
+                .on('mouseover', (ev) => {
+                    d3.select(ev.currentTarget).select('rect').attr('filter', 'url(#cardShadowHover)');
+                    const parts = [];
+                    if (n.birth_year) parts.push('जन्म: ' + n.birth_year);
+                    if (n.gotra) parts.push('गोत्र: ' + n.gotra);
+                    if (dead) parts.push('✝ दिवंगत');
+                    tooltip.innerHTML = `<strong>${n.name || ''} ${n.kul_naam || ''}</strong>` + (parts.length ? '<br>' + parts.join(' · ') : '');
+                    tooltip.style.display = 'block';
+                })
+                .on('mousemove', (ev) => { tooltip.style.left = (ev.clientX + 14) + 'px'; tooltip.style.top = (ev.clientY - 10) + 'px'; })
+                .on('mouseout', (ev) => { d3.select(ev.currentTarget).select('rect').attr('filter', 'url(#cardShadow)'); tooltip.style.display = 'none'; });
 
-        // Map relation types to colors/styles
-        function getLinkStyle(d) {
-            const type = d.sambandh_prakar;
-            if (type === 'pati' || type === 'patni') {
-                return { stroke: '#FF9F1C', dash: '4,4', width: 2, type: 'vine' };
+            // Card rect
+            fg.append('rect').attr('width', CARD_W).attr('height', CARD_H).attr('rx', 12)
+                .attr('fill', cardBg).attr('stroke', accent + '33').attr('stroke-width', 1.5)
+                .attr('filter', 'url(#cardShadow)');
+
+            // Top accent strip
+            fg.append('rect').attr('width', CARD_W).attr('height', 3).attr('rx', 2).attr('fill', accent).attr('opacity', 0.9);
+
+            // Avatar circle
+            const ax = CARD_W / 2, ay = 22;
+            fg.append('circle').attr('cx', ax).attr('cy', ay).attr('r', 16)
+                .attr('fill', accent).attr('opacity', dead ? 0.15 : 0.12);
+
+            if (n.photo_url) {
+                const imgId = 'img' + n.id;
+                defs.append('clipPath').attr('id', imgId + 'c').append('circle').attr('cx', ax).attr('cy', ay).attr('r', 15);
+                defs.append('pattern').attr('id', imgId).attr('patternUnits', 'userSpaceOnUse')
+                    .attr('x', ax - 15).attr('y', ay - 15).attr('width', 30).attr('height', 30)
+                    .append('image').attr('href', '/' + n.photo_url).attr('width', 30).attr('height', 30);
+                fg.append('circle').attr('cx', ax).attr('cy', ay).attr('r', 15)
+                    .attr('fill', `url(#${imgId})`).attr('clip-path', `url(#${imgId}c)`);
+            } else {
+                fg.append('text').attr('x', ax).attr('y', ay).attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'middle').attr('font-size', '13px').attr('font-weight', '700')
+                    .attr('fill', accent).text(n.name ? n.name.charAt(0) : '?');
             }
-            
-            // Branch thickness based on generation (older = thicker)
-            const minGen = Math.min(d.source.generation || 0, d.target.generation || 0);
-            const thickness = Math.max(2, 16 - (minGen * 2.5));
-            return { stroke: 'url(#branchGradient)', dash: '0', width: thickness, type: 'branch' };
-        }
 
-        // Add SVG definitions for gradients & leaf paths
-        const defs = svg.append("defs");
-        const gradient = defs.append("linearGradient")
-            .attr("id", "branchGradient")
-            .attr("x1", "0%").attr("y1", "100%") // Bottom (Root)
-            .attr("x2", "0%").attr("y2", "0%");  // Top (Leaves)
-        gradient.append("stop").attr("offset", "0%").attr("stop-color", "#5C4033"); // Dark Wood
-        gradient.append("stop").attr("offset", "100%").attr("stop-color", "#6B8E23"); // Olive Green
+            // Gender/death icon
+            fg.append('text').attr('x', ax + 13).attr('y', ay - 11).attr('font-size', '9px')
+                .attr('fill', accent).attr('opacity', 0.75).text(dead ? '✝' : (female ? '♀' : '♂'));
 
-        const link = g.append("g")
-            .selectAll("path")
-            .data(validLinks)
-            .join("path")
-            .attr("fill", "none")
-            .attr("stroke", d => getLinkStyle(d).stroke)
-            .attr("stroke-width", d => getLinkStyle(d).width)
-            .attr("stroke-dasharray", d => getLinkStyle(d).dash)
-            .style("opacity", 0.85);
+            // Name
+            const nm = n.name || '';
+            const nm2 = nm.length > 9 ? nm.slice(0, 9) + '…' : nm;
+            fg.append('text').attr('x', CARD_W / 2).attr('y', CARD_H - 26)
+                .attr('text-anchor', 'middle').attr('font-size', '12px').attr('font-weight', '700')
+                .attr('fill', textC).attr('font-family', 'Noto Sans Devanagari,Outfit,sans-serif').text(nm2);
 
-        const node = g.append("g")
-            .selectAll("g")
-            .data(nodes)
-            .join("g")
-            .style("cursor", "pointer")
-            .on("click", (event, d) => {
-                if (d.other_parivars && d.other_parivars.length > 0) {
-                    if (confirm(`यह सदस्य "${d.other_parivars[0].naam}" से भी जुड़ा है।\nक्या आप वह परिवार वृक्ष देखना चाहते हैं?\n(Cancel दबाने पर प्रोफ़ाइल खुलेगी)`)) {
-                        window.location.href = `vansh_vriksha.php?parivar_id=${d.other_parivars[0].id}`;
-                        return;
-                    }
-                }
-                window.location.href = `vyakti.php?id=${d.id}`;
-            });
+            // Birth year sub-label
+            const sub = n.birth_year ? String(n.birth_year) : (n.kul_naam || '');
+            if (sub) fg.append('text').attr('x', CARD_W / 2).attr('y', CARD_H - 12)
+                .attr('text-anchor', 'middle').attr('font-size', '9px').attr('fill', subC).text(sub);
 
-        // Draw leaf paths instead of circles
-        node.append("path")
-            .attr("d", d => {
-                // If trunk (generation 0), draw a root base
-                if (d.generation === 0) {
-                    return "M-25,25 Q0,-25 25,25 Z"; 
-                }
-                // Standard leaf: stem at bottom, tip at top
-                return "M0,20 C-25,5 -20,-20 0,-35 C20,-20 25,5 0,20 Z";
-            })
-            .attr("fill", d => {
-                if (!d.jeevit) return "#D2691E"; // Autumn Orange for deceased
-                return d.ling === 'stri' ? "#9ACD32" : "#228B22"; // Yellow-Green for female, Forest Green for male
-            })
-            .attr("stroke", d => (d.other_parivars && d.other_parivars.length > 0) ? "#FFD700" : "#ffffff")
-            .attr("stroke-width", d => (d.other_parivars && d.other_parivars.length > 0) ? 3 : 1.5)
-            .style("filter", d => (d.other_parivars && d.other_parivars.length > 0) ? "drop-shadow(0 0 8px rgba(255,215,0,0.8))" : "drop-shadow(0 2px 4px rgba(0,0,0,0.2))");
-
-        node.append("text")
-            .attr("text-anchor", "middle")
-            .attr("dy", "38px")
-            .attr("fill", "var(--text-primary)")
-            .attr("font-size", "14px")
-            .attr("font-weight", "800")
-            .style("text-shadow", "0 1px 3px rgba(255,255,255,1), 0 0 5px rgba(255,255,255,0.8)")
-            .text(d => d.name);
-
-        simulation.on("tick", () => {
-            // Anchor roots to exactly horizontal center bottom
-            nodes.forEach(d => {
-                if (d.generation === 0) {
-                    d.fy = height - 50;
-                }
-            });
-
-            link.attr("d", d => {
-                const sourceX = d.source ? d.source.x : 0;
-                const sourceY = d.source ? d.source.y : 0;
-                const targetX = d.target ? d.target.x : 0;
-                const targetY = d.target ? d.target.y : 0;
-
-                // Mycelium vine for spouses (horizontal intertwining)
-                if (d.sambandh_prakar === 'pati' || d.sambandh_prakar === 'patni') {
-                    return `M${sourceX},${sourceY} Q${(sourceX+targetX)/2},${sourceY-30} ${targetX},${targetY}`;
-                }
-
-                // Botanical branch (curved upward)
-                return `M${sourceX},${sourceY} C${sourceX},${(sourceY+targetY)/2} ${targetX},${(sourceY+targetY)/2} ${targetX},${targetY}`;
-            });
-
-            node.attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
+            // Cross-family gold ring
+            if (n.other_parivars?.length > 0)
+                fg.append('circle').attr('cx', ax).attr('cy', ay).attr('r', 17)
+                    .attr('fill', 'none').attr('stroke', '#FFD700').attr('stroke-width', 2)
+                    .style('filter', 'drop-shadow(0 0 4px rgba(255,215,0,0.5))');
         });
+
+        // Zoom setup + auto-fit
+        zoomBehavior = d3.zoom().scaleExtent([0.08, 3]).on('zoom', (ev) => mainG.attr('transform', ev.transform));
+        svg.call(zoomBehavior);
+
+        const allX = [...posX.values()], allY = [...posY.values()];
+        const minX = Math.min(...allX) - CARD_W, maxX = Math.max(...allX) + CARD_W;
+        const minY = Math.min(...allY) - 40, maxY = Math.max(...allY) + CARD_H + 40;
+        const tW = maxX - minX, tH = maxY - minY;
+        const scale = Math.min(W / tW, H / tH, 1.2) * 0.88;
+        const tx = (W - tW * scale) / 2 - minX * scale;
+        const ty = (H - tH * scale) / 2 - minY * scale + 20;
+        svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
     }
 
-    function resetZoom() {
-        svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
-    }
-
-    function saveImage() {
-        alert('इमेज सेविंग फीचर मोबाइल ब्राउज़र में सीमित हो सकता है।');
-    }
+    function zoomIn() { svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.4); }
+    function zoomOut() { svg.transition().duration(300).call(zoomBehavior.scaleBy, 0.72); }
+    function resetView() { if (treeData) buildTree(treeData); }
+    window.addEventListener('resize', () => { if (treeData) buildTree(treeData); });
 </script>
-
-<style>
-    #tree-canvas { 
-        background: radial-gradient(circle at bottom, #F9FBE7 0%, var(--bg-page) 70%);
-        height: calc(100vh - 160px); 
-    }
-    [data-theme="dark"] #tree-canvas {
-        background: radial-gradient(circle at bottom, #1B2E1E 0%, var(--bg-page) 70%);
-    }
-</style>
 
 <?php include '../includes/nav.php'; ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
