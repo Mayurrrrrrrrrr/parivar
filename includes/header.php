@@ -72,6 +72,8 @@ requireLogin();
 
     <!-- App Styles -->
     <link rel="stylesheet" href="/assets/css/style.css">
+    <!-- App Scripts -->
+    <script src="/assets/js/app.js?v=<?php echo time(); ?>"></script>
 </head>
 <body>
 
