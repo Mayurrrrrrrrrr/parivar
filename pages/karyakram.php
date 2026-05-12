@@ -8,30 +8,34 @@ requireLogin();
 $parivar_id = currentParivarId();
 $action = $_GET['action'] ?? 'list';
 
-if ($action === 'list') {
-    $sql_upcoming = "
-        SELECT k.*, v.pratham_naam, v.kul_naam,
-          CASE 
-            WHEN k.punravrutti_prakar = 'gregorian_varshik' THEN 
+try {
+    if ($action === 'list') {
+        $sql_upcoming = "
+            SELECT k.*, v.pratham_naam, v.kul_naam,
               CASE 
-                WHEN DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) YEAR) < CURDATE() 
-                THEN DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) + 1 YEAR) 
-                ELSE DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) YEAR) 
-              END
-            ELSE k.tithi_gregorian
-          END as next_date
-        FROM karyakram k LEFT JOIN vyakti v ON k.vyakti_id = v.id 
-        WHERE k.parivar_id = ? 
-        HAVING next_date >= CURDATE()
-        ORDER BY next_date ASC
-    ";
-    $stmt = $pdo->prepare($sql_upcoming);
-    $stmt->execute([$parivar_id]);
-    $events = $stmt->fetchAll();
-} else {
-    $stmt = $pdo->prepare("SELECT id, pratham_naam, kul_naam FROM vyakti WHERE parivar_id = ? ORDER BY pratham_naam");
-    $stmt->execute([$parivar_id]);
-    $persons = $stmt->fetchAll();
+                WHEN k.punravrutti_prakar = 'gregorian_varshik' THEN 
+                  CASE 
+                    WHEN DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) YEAR) < CURDATE() 
+                    THEN DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) + 1 YEAR) 
+                    ELSE DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) YEAR) 
+                  END
+                ELSE k.tithi_gregorian
+              END as next_date
+            FROM karyakram k LEFT JOIN vyakti v ON k.vyakti_id = v.id 
+            WHERE k.parivar_id = ? 
+            HAVING next_date >= CURDATE()
+            ORDER BY next_date ASC
+        ";
+        $stmt = $pdo->prepare($sql_upcoming);
+        $stmt->execute([$parivar_id]);
+        $events = $stmt->fetchAll();
+    } else {
+        $stmt = $pdo->prepare("SELECT id, pratham_naam, kul_naam FROM vyakti WHERE parivar_id = ? ORDER BY pratham_naam");
+        $stmt->execute([$parivar_id]);
+        $persons = $stmt->fetchAll();
+    }
+} catch (Exception $e) {
+    die("Query Error: " . $e->getMessage());
 }
 ?>
 
