@@ -8,10 +8,11 @@ requireLogin();
 $parivar_id = currentParivarId();
 $action = $_GET['action'] ?? 'list';
 
+if ($action === 'list') {
     $sql_upcoming = "
         SELECT k.*, v.pratham_naam, v.kul_naam,
           CASE 
-            WHEN k.punravrutti = 1 THEN 
+            WHEN k.punravrutti_prakar = 'gregorian_varshik' THEN 
               CASE 
                 WHEN DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) YEAR) < CURDATE() 
                 THEN DATE_ADD(k.tithi_gregorian, INTERVAL YEAR(CURDATE()) - YEAR(k.tithi_gregorian) + 1 YEAR) 

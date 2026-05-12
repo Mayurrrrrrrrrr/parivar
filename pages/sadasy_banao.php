@@ -8,221 +8,133 @@ requireLogin();
 $parivar_id = getParivarId();
 ?>
 
-<div class="card">
-    <h2>नया सदस्य जोड़ें</h2>
-    <p style="color: #666; margin-bottom: 1.5rem;">परिवार के किसी भी सदस्य की जानकारी यहाँ दर्ज करें।</p>
+<div class="page-content">
+    <div class="card" style="border-radius: 20px; padding: 24px;">
+        <h2 style="margin-bottom: 8px;">नया सदस्य जोड़ें</h2>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 1.5rem;">परिवार के किसी भी सदस्य की जानकारी यहाँ दर्ज करें।</p>
 
-    <div class="login-tabs" style="max-width: 400px; margin-bottom: 24px;">
-        <button class="login-tab active" onclick="switchTab('new')" id="tab_new">नया सदस्य</button>
-        <button class="login-tab" onclick="switchTab('link')" id="tab_link">प्रोफ़ाइल लिंक करें</button>
-    </div>
-
-    <div id="form_new">
-
-
-    <form action="/api/vyakti.php?action=banao" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-                <label>प्रथम नाम *</label>
-                <input type="text" name="pratham_naam" class="form-control hindi-type" required placeholder="जैसे: सुरेश">
-            </div>
-            <div class="form-group">
-                <label>मध्य नाम</label>
-                <input type="text" name="madhya_naam" class="form-control hindi-type" placeholder="जैसे: चन्द्र">
-            </div>
-            <div class="form-group">
-                <label>कुल/उपनाम *</label>
-                <input type="text" name="kul_naam" class="form-control hindi-type" required placeholder="जैसे: शर्मा">
-            </div>
-            <div class="form-group">
-                <label>लिंग *</label>
-                <select name="ling" class="form-control" required>
-                    <option value="purush">पुरुष</option>
-                    <option value="stri">स्त्री</option>
-                    <option value="anya">अन्य</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>जन्म तिथि (ग्रेगोरियन)</label>
-                <input type="date" name="janm_tithi_gregorian" id="dob_g" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>जन्म तिथि (विक्रम संवत्)</label>
-                <input type="text" name="janm_tithi_vs" id="dob_vs" class="form-control" readonly style="background: var(--bg-secondary);" placeholder="ऑटो-कैलकुलेट होगी">
-            </div>
-            <div class="form-group">
-                <label>गोत्र</label>
-                <input type="text" name="gotra" class="form-control hindi-type" placeholder="जैसे: भारद्वाज">
-            </div>
-            <div class="form-group">
-                <label>फोटो</label>
-                <input type="file" name="photo" class="form-control" accept="image/*">
-            </div>
-
-            <div class="divider" style="grid-column: span 2;"></div>
-
-            <!-- Parent Selection -->
-            <?php
-            $stmt = $pdo->prepare("SELECT id, pratham_naam, kul_naam FROM vyakti WHERE parivar_id = ? ORDER BY pratham_naam");
-            $stmt->execute([$parivar_id]);
-            $all_members = $stmt->fetchAll();
-            ?>
-            <div class="form-group">
-                <label>पिता का नाम (यदि पोर्टल पर हैं)</label>
-                <select name="pita_id" class="form-control">
-                    <option value="">— चुनें —</option>
-                    <?php foreach ($all_members as $m): ?>
-                        <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>माता का नाम (यदि पोर्टल पर हैं)</label>
-                <select name="mata_id" class="form-control">
-                    <option value="">— चुनें —</option>
-                    <?php foreach ($all_members as $m): ?>
-                        <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="divider" style="grid-column: span 2;"></div>
-
-            <!-- Extended Relation Selection -->
-            <div style="grid-column: span 2;">
-                <p style="font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--rang-pramukh);">विस्तृत संबंध (जैसे मामा, चाचा, दामाद आदि)</p>
-            </div>
-            <div class="form-group">
-                <label>संबंधी चुनें</label>
-                <select name="relative_id" class="form-control">
-                    <option value="">— चुनें —</option>
-                    <?php foreach ($all_members as $m): ?>
-                        <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>नया सदस्य उनका क्या है?</label>
-                <select name="relative_relation" class="form-control">
-                    <option value="">— संबंध चुनें —</option>
-                    <option value="pati">पति</option>
-                    <option value="patni">पत्नी</option>
-                    <option value="bhai">भाई</option>
-                    <option value="behen">बहन</option>
-                    <option value="mama">मामा</option>
-                    <option value="mami">मामी</option>
-                    <option value="mausi">मौसी</option>
-                    <option value="mausa">मौसा</option>
-                    <option value="chacha">चाचा</option>
-                    <option value="chachi">चाची</option>
-                    <option value="taau">ताऊ</option>
-                    <option value="tai">ताई</option>
-                    <option value="bua">बुआ</option>
-                    <option value="fufa">फूफा</option>
-                    <option value="sasur">ससुर</option>
-                    <option value="saas">सास</option>
-                    <option value="sala">साला</option>
-                    <option value="sali">साली</option>
-                    <option value="jija">जीजा</option>
-                    <option value="bhabhi">भाभी</option>
-                    <option value="devar">देवर</option>
-                    <option value="damad">दामाद</option>
-                    <option value="bahu">बहू</option>
-                    <option value="samdhi">समधी</option>
-                    <option value="samdhan">समधन</option>
-                    <option value="dada">दादा</option>
-                    <option value="dadi">दादी</option>
-                    <option value="nana">नाना</option>
-                    <option value="nani">नानी</option>
-                </select>
-            </div>
-            <div class="form-group" style="grid-column: span 2;">
-                <label>भाई / बहन (पोर्टल पर मौजूद सदस्यों को चुनें)</label>
-                <select name="sibling_ids[]" class="form-control" multiple style="height: 100px;">
-                    <?php foreach ($all_members as $m): ?>
-                        <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <small style="color:var(--text-muted)">Ctrl दबाकर एक से अधिक चुन सकते हैं। इनसे जुड़ने पर माता-पिता की जानकारी स्वतः जुड़ जाएगी।</small>
-            </div>
+        <div class="login-tabs" style="margin-bottom: 24px;">
+            <button class="login-tab active" onclick="switchTab('new')" id="tab_new">नया सदस्य</button>
+            <button class="login-tab" onclick="switchTab('link')" id="tab_link">प्रोफ़ाइल लिंक करें</button>
         </div>
 
-        <div style="margin-top: 1.5rem;">
-            <button type="submit" class="btn btn-primary">सदस्य सुरक्षित करें</button>
+        <div id="form_new">
+            <form action="/api/vyakti.php?action=banao" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>प्रथम नाम *</label>
+                        <input type="text" name="pratham_naam" class="form-control hindi-type" required placeholder="जैसे: सुरेश">
+                    </div>
+                    <div class="form-group">
+                        <label>मध्य नाम</label>
+                        <input type="text" name="madhya_naam" class="form-control hindi-type" placeholder="जैसे: चन्द्र">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>कुल/उपनाम *</label>
+                        <input type="text" name="kul_naam" class="form-control hindi-type" required placeholder="जैसे: शर्मा">
+                    </div>
+                    <div class="form-group">
+                        <label>लिंग *</label>
+                        <select name="ling" class="form-control" required>
+                            <option value="purush">पुरुष</option>
+                            <option value="stri">स्त्री</option>
+                            <option value="anya">अन्य</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>गोत्र</label>
+                        <input type="text" name="gotra" class="form-control hindi-type" placeholder="जैसे: भारद्वाज">
+                    </div>
+                    <div class="form-group">
+                        <label>जन्म तिथि (Gregorian)</label>
+                        <input type="date" name="janm_tithi_gregorian" id="dob_g" class="form-control" onchange="convertToVS(this, document.getElementById('dob_vs'), document.getElementById('vs_display'))">
+                    </div>
+                    <div class="form-group">
+                        <label>विक्रम संवत्</label>
+                        <input type="hidden" name="janm_tithi_vs" id="dob_vs">
+                        <div id="vs_display" style="font-size: 12px; color: var(--rang-pramukh); font-weight: 600; padding-top: 8px;">📅 तिथि ऑटो-कैलकुलेट होगी</div>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>फोटो</label>
+                        <input type="file" name="photo" class="form-control" accept="image/*">
+                    </div>
+
+                    <div class="divider" style="grid-column: span 2;"></div>
+
+                    <?php
+                    $stmt = $pdo->prepare("SELECT id, pratham_naam, kul_naam FROM vyakti WHERE parivar_id = ? ORDER BY pratham_naam");
+                    $stmt->execute([$parivar_id]);
+                    $all_members = $stmt->fetchAll();
+                    ?>
+                    <div class="form-group">
+                        <label>पिता</label>
+                        <select name="pita_id" class="form-control">
+                            <option value="">— चुनें —</option>
+                            <?php foreach ($all_members as $m): ?>
+                                <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>माता</label>
+                        <select name="mata_id" class="form-control">
+                            <option value="">— चुनें —</option>
+                            <?php foreach ($all_members as $m): ?>
+                                <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="divider" style="grid-column: span 2;"></div>
+
+                    <div style="grid-column: span 2;">
+                        <p style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">विस्तृत संबंध</p>
+                    </div>
+                    <div class="form-group">
+                        <label>संबंधी</label>
+                        <select name="relative_id" class="form-control">
+                            <option value="">— चुनें —</option>
+                            <?php foreach ($all_members as $m): ?>
+                                <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>उनका संबंध है</label>
+                        <select name="relative_relation" class="form-control">
+                            <option value="">— चुनें —</option>
+                            <option value="pati">पति</option>
+                            <option value="patni">पत्नी</option>
+                            <option value="bhai">भाई</option>
+                            <option value="behen">बहन</option>
+                            <option value="mama">मामा</option>
+                            <option value="chacha">चाचा</option>
+                            <option value="damad">दामाद</option>
+                            <option value="bahu">बहू</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 20px;">सदस्य सुरक्षित करें</button>
+            </form>
         </div>
-    </form>
-    </div> <!-- End form_new -->
 
-    <div id="form_link" style="display: none;">
-        <div style="background: rgba(6, 214, 160, 0.1); border-left: 4px solid var(--rang-safal); padding: 12px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="font-size: 13px; color: var(--text-secondary);"><i class="ti ti-info-circle"></i> यदि वह व्यक्ति पहले से किसी अन्य परिवार के पोर्टल पर जुड़ा है, तो उनका नया प्रोफ़ाइल बनाने के बजाय उनका <b>शेयर कोड</b> यहाँ डालें। इससे उनकी जानकारी दोनों परिवारों में साझा रहेगी।</p>
-        </div>
-        
-        <form action="/api/vyakti.php?action=link_profile" method="POST">
-            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
-            
-            <div class="form-group">
-                <label>प्रोफ़ाइल शेयर कोड *</label>
-                <input type="text" name="share_code" class="form-control" required placeholder="VK-XXXXXX" style="font-family: monospace; font-size: 16px; text-transform: uppercase;">
-                <small style="color:var(--text-muted)">जिस व्यक्ति को जोड़ना है, उनकी प्रोफ़ाइल से यह कोड मांगें।</small>
-            </div>
-
-            <div class="divider"></div>
-
-            <div style="grid-column: span 2;">
-                <p style="font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--rang-pramukh);">विस्तृत संबंध (जैसे पति, दामाद, बहू आदि)</p>
-            </div>
-            <div class="form-group" style="margin-bottom: 16px;">
-                <label>संबंधी चुनें (आपके परिवार का सदस्य)</label>
-                <select name="relative_id" class="form-control">
-                    <option value="">— चुनें —</option>
-                    <?php foreach ($all_members as $m): ?>
-                        <option value="<?php echo $m['id']; ?>"><?php echo s($m['pratham_naam'] . ' ' . $m['kul_naam']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>लिंक होने वाला व्यक्ति उनका क्या है?</label>
-                <select name="relative_relation" class="form-control">
-                    <option value="">— संबंध चुनें —</option>
-                    <option value="pati">पति</option>
-                    <option value="patni">पत्नी</option>
-                    <option value="bhai">भाई</option>
-                    <option value="behen">बहन</option>
-                    <option value="mama">मामा</option>
-                    <option value="mami">मामी</option>
-                    <option value="mausi">मौसी</option>
-                    <option value="mausa">मौसा</option>
-                    <option value="chacha">चाचा</option>
-                    <option value="chachi">चाची</option>
-                    <option value="taau">ताऊ</option>
-                    <option value="tai">ताई</option>
-                    <option value="bua">बुआ</option>
-                    <option value="fufa">फूफा</option>
-                    <option value="sasur">ससुर</option>
-                    <option value="saas">सास</option>
-                    <option value="sala">साला</option>
-                    <option value="sali">साली</option>
-                    <option value="jija">जीजा</option>
-                    <option value="bhabhi">भाभी</option>
-                    <option value="devar">देवर</option>
-                    <option value="damad">दामाद</option>
-                    <option value="bahu">बहू</option>
-                    <option value="samdhi">समधी</option>
-                    <option value="samdhan">समधन</option>
-                    <option value="dada">दादा</option>
-                    <option value="dadi">दादी</option>
-                    <option value="nana">नाना</option>
-                    <option value="nani">नानी</option>
-                </select>
+        <div id="form_link" style="display: none;">
+            <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; margin-bottom: 20px; font-size: 12px; line-height: 1.6;">
+                <i class="ti ti-info-circle" style="color: var(--rang-pramukh);"></i> यदि व्यक्ति पहले से पोर्टल पर है, तो उनका <b>प्रोफ़ाइल शेयर कोड</b> यहाँ डालें।
             </div>
             
-            <div style="margin-top: 1.5rem;">
-                <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--rang-safal), #118AB2);">प्रोफ़ाइल लिंक करें</button>
-            </div>
-        </form>
+            <form action="/api/vyakti.php?action=link_profile" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+                <div class="form-group">
+                    <label>शेयर कोड *</label>
+                    <input type="text" name="share_code" class="form-control" required placeholder="VK-XXXXXX" style="font-family: monospace; font-size: 18px; text-align: center;">
+                </div>
+                <button type="submit" class="btn btn-primary">प्रोफ़ाइल लिंक करें</button>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -235,12 +147,5 @@ $parivar_id = getParivarId();
     }
 </script>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof setupDateConversion === 'function') {
-            setupDateConversion('dob_g', 'dob_vs');
-        }
-    });
-</script>
-
+<?php include '../includes/nav.php'; ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
