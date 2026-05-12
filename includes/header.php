@@ -26,6 +26,22 @@ requireLogin();
     <!-- App Styles -->
     <link rel="stylesheet" href="/assets/css/style.css?v=<?php echo time(); ?>">
 
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#FF6B35">
+    <link rel="apple-touch-icon" href="/assets/img/icon-192.png">
+
+    <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW Registered', reg))
+                    .catch(err => console.log('SW Registration Failed', err));
+            });
+        }
+    </script>
+
     <script>
         // Theme & Accessibility Persistence
         (function() {

@@ -1,0 +1,35 @@
+{
+  "name": "परिवार — वंशावली प्रबंधन",
+  "short_name": "परिवार",
+  "description": "आपका डिजिटल कुल — वंशावली और परिवार प्रबंधन पोर्टल",
+  "start_url": "/index.php",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#FF6B35",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/assets/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "वंश वृक्ष",
+      "url": "/pages/vansh_vriksha.php",
+      "icons": [{ "src": "/assets/img/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "नया सदस्य",
+      "url": "/pages/sadasy_banao.php",
+      "icons": [{ "src": "/assets/img/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
