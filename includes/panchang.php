@@ -83,3 +83,49 @@ function aajKiTithi(): string {
 function vsYear(int $gregYear, int $month): int {
     return ($month >= 4) ? ($gregYear + 57) : ($gregYear + 56);
 }
+
+/**
+ * किसी VS tithi की इस साल या अगले साल की Gregorian date
+ * Used for tithi_varshik recurring events
+ * @param string $tithi_vs e.g. "पौष कृष्ण एकादशी, वि.सं. २०७४"
+ * @return string YYYY-MM-DD
+ */
+function getTithiNextGregorian(string $tithi_vs): string {
+    global $MASA_NAAM, $TITHI_NAAM;
+    
+    // Parse करो masa और paksha tithi को string से
+    foreach ($MASA_NAAM as $num => $masa) {
+        if (strpos($tithi_vs, $masa) !== false) {
+            $masa_num = $num;
+            $masa_name = $masa;
+            break;
+        }
+    }
+    if (!isset($masa_num)) return date('Y-m-d');
+    
+    $paksha = (strpos($tithi_vs, 'शुक्ल') !== false) ? 'शुक्ल' : 'कृष्ण';
+    
+    // Masa → approximate Gregorian month (lunar month starts)
+    $masa_to_greg_month = [
+        1=>3, 2=>4, 3=>5, 4=>6, 5=>7, 6=>8,
+        7=>9, 8=>10, 9=>11, 10=>12, 11=>1, 12=>2
+    ];
+    
+    $greg_month = $masa_to_greg_month[$masa_num];
+    $year = date('Y');
+    
+    // Paksha offset
+    $paksha_offset = ($paksha === 'शुक्ल') ? 0 : 15;
+    
+    // Approximate date: masa start + tithi offset
+    $base_ts = mktime(0, 0, 0, $greg_month, 1, $year);
+    $approx_ts = $base_ts + ($paksha_offset * 86400);
+    
+    // अगर बीत गई तो अगले साल
+    if ($approx_ts < strtotime('today')) {
+        $base_ts = mktime(0, 0, 0, $greg_month, 1, $year + 1);
+        $approx_ts = $base_ts + ($paksha_offset * 86400);
+    }
+    
+    return date('Y-m-d', $approx_ts);
+}

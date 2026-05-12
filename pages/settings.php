@@ -28,8 +28,17 @@ $family_code = $parivar['parivar_code'];
         <?php 
             $msg = urlencode("🙏 हमारे परिवार पोर्टल 'परिवार' से जुड़ें! \nकोड: {$family_code}\nलिंक: https://parivar.yuktaa.com/");
             $wa_url = "https://wa.me/?text={$msg}";
+            
+            // Feature 3: QR Code
+            $join_url = "https://parivar.yuktaa.com/?join=" . $family_code;
+            $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" . urlencode($join_url) . "&color=B5470B&bgcolor=FFF8F0";
         ?>
-        <a href="<?php echo $wa_url; ?>" style="display:inline-flex; align-items:center; gap:6px; margin-top:16px; background:rgba(255,255,255,0.2); padding:10px 20px; border-radius:24px; color:white; font-size:13px; text-decoration:none" target="_blank">
+        <div style="text-align:center; margin:16px 0;">
+            <img src="<?php echo $qr_url; ?>" alt="QR Code" style="border-radius:12px; border:3px solid rgba(255,255,255,0.3); width:120px; height:120px; background:white;">
+            <p style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:6px">QR Code स्कैन करें</p>
+        </div>
+
+        <a href="<?php echo $wa_url; ?>" style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.2); padding:10px 20px; border-radius:24px; color:white; font-size:13px; text-decoration:none" target="_blank">
             <i class="ti ti-brand-whatsapp"></i> WhatsApp पर शेयर करें
         </a>
     </div>

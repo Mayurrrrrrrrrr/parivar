@@ -20,17 +20,31 @@ switch ($action) {
         break;
 
     case 'upcoming':
-        // Next 7 days
-        $stmt = $pdo->prepare("
-            SELECT k.*, v.pratham_naam 
-            FROM karyakram k 
-            LEFT JOIN vyakti v ON k.vyakti_id = v.id 
-            WHERE k.parivar_id = ? 
-            AND k.tithi_gregorian BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-            ORDER BY k.tithi_gregorian
-        ");
+        require_once __DIR__ . '/../includes/panchang.php';
+        $stmt = $pdo->prepare("SELECT k.*, v.pratham_naam FROM karyakram k LEFT JOIN vyakti v ON k.vyakti_id = v.id WHERE k.parivar_id = ?");
         $stmt->execute([$parivar_id]);
-        echo json_encode(['safalta' => true, 'data' => $stmt->fetchAll()]);
+        $all_events = $stmt->fetchAll();
+        
+        $upcoming = [];
+        foreach ($all_events as $e) {
+            if ($e['punravrutti_prakar'] === 'tithi_varshik' && $e['tithi_vs']) {
+                $e['next_date'] = getTithiNextGregorian($e['tithi_vs']);
+            } elseif ($e['punravrutti_prakar'] === 'gregorian_varshik') {
+                $orig = date('m-d', strtotime($e['tithi_gregorian']));
+                $this_year = date('Y') . '-' . $orig;
+                $e['next_date'] = ($this_year >= date('Y-m-d')) ? $this_year : (date('Y')+1) . '-' . $orig;
+            } else {
+                $e['next_date'] = $e['tithi_gregorian'];
+            }
+            
+            $days = floor((strtotime($e['next_date']) - strtotime(date('Y-m-d'))) / 86400);
+            if ($days >= 0 && $days <= 30) {
+                $upcoming[] = $e;
+            }
+        }
+        
+        usort($upcoming, fn($a,$b) => strcmp($a['next_date'], $b['next_date']));
+        echo json_encode(['safalta' => true, 'data' => $upcoming]);
         break;
 
     case 'aaj':

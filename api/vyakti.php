@@ -303,6 +303,64 @@ switch ($action) {
         }
         exit;
 
+    case 'sambandh_jodo':
+        csrf_verify();
+        $a = (int)$_POST['vyakti_a_id'];
+        $b = (int)$_POST['vyakti_b_id'];
+        $prakar = $_POST['sambandh_prakar'] ?? '';
+        
+        // Verify both belong to this parivar
+        $check = $pdo->prepare("SELECT COUNT(*) FROM vyakti_parivar WHERE vyakti_id IN (?,?) AND parivar_id = ?");
+        $check->execute([$a, $b, $parivar_id]);
+        if ($check->fetchColumn() < 2) {
+            header('Location: /pages/vyakti.php?id=' . $a . '&error=permission');
+            exit;
+        }
+        
+        // Gotra check for vivah
+        if (in_array($prakar, ['pati','patni'])) {
+            $ga = $pdo->prepare("SELECT gotra FROM vyakti WHERE id=?"); $ga->execute([$a]); $ga = $ga->fetchColumn();
+            $gb = $pdo->prepare("SELECT gotra FROM vyakti WHERE id=?"); $gb->execute([$b]); $gb = $gb->fetchColumn();
+            if ($ga && $gb && $ga === $gb) {
+                header('Location: /pages/vyakti.php?id=' . $a . '&error=sagotra_warning');
+                exit;
+            }
+        }
+        
+        $stmt = $pdo->prepare("INSERT IGNORE INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?,?,?)");
+        $stmt->execute([$a, $b, $prakar]);
+        
+        // Determine reciprocal (Simple version)
+        $stmt_a = $pdo->prepare("SELECT ling FROM vyakti WHERE id = ?");
+        $stmt_a->execute([$a]);
+        $a_ling = $stmt_a->fetchColumn();
+        $is_female = ($a_ling === 'stri');
+        
+        $reciprocal = '';
+        switch ($prakar) {
+            case 'pita':
+            case 'mata': $reciprocal = $is_female ? 'putri' : 'putra'; break;
+            case 'pati': $reciprocal = 'patni'; break;
+            case 'patni': $reciprocal = 'pati'; break;
+            case 'putra':
+            case 'putri': 
+                $stmt_b = $pdo->prepare("SELECT ling FROM vyakti WHERE id = ?");
+                $stmt_b->execute([$b]);
+                $b_ling = $stmt_b->fetchColumn();
+                $reciprocal = ($b_ling === 'stri') ? 'mata' : 'pita'; 
+                break;
+            case 'bhai':
+            case 'behen': $reciprocal = $is_female ? 'behen' : 'bhai'; break;
+        }
+        
+        if ($reciprocal) {
+            $stmt2 = $pdo->prepare("INSERT IGNORE INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES (?,?,?)");
+            $stmt2->execute([$b, $a, $reciprocal]);
+        }
+        
+        header('Location: /pages/vyakti.php?id=' . $a . '&success=sambandh_joda');
+        exit;
+
     default:
         echo json_encode(['safalta' => false, 'sandesh' => 'अज्ञात action']);
 }

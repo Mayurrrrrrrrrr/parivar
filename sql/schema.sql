@@ -156,14 +156,13 @@ CREATE TABLE IF NOT EXISTS parivar_feed (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 6.5. परिवार फ़ीड प्रतिक्रिया (parivar_feed_reactions)
 CREATE TABLE IF NOT EXISTS parivar_feed_reactions (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  post_id INT NOT NULL,
+  post_id INT NOT NULL,              -- feed_id → post_id (api/feed.php से match)
   user_id INT NOT NULL,
-  emoji VARCHAR(10) NOT NULL,
+  emoji VARCHAR(10) NOT NULL,        -- ENUM → VARCHAR(10) for 🙏❤️😊
   banaya_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY unique_reaction (post_id, user_id),
+  UNIQUE KEY unique_reaction (post_id, user_id, emoji),
   FOREIGN KEY (post_id) REFERENCES parivar_feed(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -207,6 +206,10 @@ INSERT INTO vyakti (id, parivar_id, pratham_naam, kul_naam, ling, jeevit, janm_t
 (3, 1, 'सुरेश', 'शर्मा', 'purush', 1, '1965-11-14', 'भारद्वाज'),
 (4, 1, 'मीना', 'शर्मा', 'stri', 1, '1968-03-22', 'कश्यप'),
 (5, 1, 'राहुल', 'शर्मा', 'purush', 1, '1992-07-05', 'भारद्वाज');
+
+-- Seed Data: vyakti_parivar (MISSING — app shows 0 members without this)
+INSERT INTO vyakti_parivar (vyakti_id, parivar_id) VALUES
+(1, 1), (2, 1), (3, 1), (4, 1), (5, 1);
 
 -- Seed Data: Sambandh
 INSERT INTO sambandh (vyakti_a_id, vyakti_b_id, sambandh_prakar) VALUES

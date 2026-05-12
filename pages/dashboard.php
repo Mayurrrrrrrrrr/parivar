@@ -175,16 +175,26 @@ $panchang_data = gregorianToVS($d, $m, $y);
     <?php endif; ?>
 
     <!-- Senior Safety Check -->
+    <?php
+    $mukhya_stmt = $pdo->prepare("SELECT naam, phone FROM users WHERE parivar_id = ? AND bhumika = 'mukhya' LIMIT 1");
+    $mukhya_stmt->execute([$parivar_id]);
+    $mukhya = $mukhya_stmt->fetch();
+    ?>
     <div class="card" style="margin-top: 32px; background: #FFF1F2; border: 1.5px solid #FDA4AF;">
         <div style="display:flex; align-items:center; gap:16px;">
             <div style="font-size: 32px;">👵</div>
             <div style="flex:1">
                 <h3 style="font-size: 15px; color: #9F1239;">आपातकालीन सहायता</h3>
                 <p style="font-size: 12px; color: #BE123C; opacity: 0.8;">किसी भी समस्या के लिए परिवार प्रमुख को तुरंत संपर्क करें।</p>
+                <?php if ($mukhya): ?>
+                    <div style="font-size:10px; color:#BE123C; font-weight:600; margin-top:4px;">संपर्क: <?php echo s($mukhya['naam']); ?></div>
+                <?php endif; ?>
             </div>
-            <a href="tel:919999999999" class="btn btn-primary" style="width: auto; background: #E11D48; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3); padding: 8px 16px;">
+            <?php if ($mukhya && $mukhya['phone']): ?>
+            <a href="tel:<?php echo s($mukhya['phone']); ?>" class="btn btn-primary" style="width: auto; background: #E11D48; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3); padding: 8px 16px;">
                 <i class="ti ti-phone"></i>
             </a>
+            <?php endif; ?>
         </div>
     </div>
 

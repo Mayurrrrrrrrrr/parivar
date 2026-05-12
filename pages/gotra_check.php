@@ -48,6 +48,23 @@ if ($s1 && $s2) {
                 <i class="ti <?php echo $result['safal'] ? 'ti-check' : 'ti-x'; ?>" style="font-size:24px; display:block; margin-bottom:8px;"></i>
                 <div style="font-weight:600; font-size:15px;"><?php echo s($result['sandesh']); ?></div>
             </div>
+
+            <?php
+            $gotras_to_show = array_unique(array_filter([$s1, $s2]));
+            foreach ($gotras_to_show as $g) {
+                $stmt = $pdo->prepare("SELECT * FROM gotra_nirdesha WHERE gotra_naam = ?");
+                $stmt->execute([$g]);
+                $info = $stmt->fetch();
+                if ($info) {
+                    echo '<div class="card" style="margin-top:12px;padding:14px;border:0.5px solid var(--seemant);">';
+                    echo '<div style="font-size:13px;font-weight:600;color:var(--rang-pramukh)">🔥 ' . s($g) . ' गोत्र</div>';
+                    echo '<div style="font-size:12px;color:var(--text-secondary);margin-top:6px">मूल ऋषि: ' . s($info['rishi']) . '</div>';
+                    echo '<div style="font-size:12px;color:var(--text-secondary)">प्रवर संख्या: ' . s($info['pravara_count']) . '</div>';
+                    if ($info['tippani']) echo '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' . s($info['tippani']) . '</div>';
+                    echo '</div>';
+                }
+            }
+            ?>
         <?php endif; ?>
     </div>
 

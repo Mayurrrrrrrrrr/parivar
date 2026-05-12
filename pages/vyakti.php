@@ -382,6 +382,53 @@ $fullName = trim($v['pratham_naam'] . ' ' . ($v['madhya_naam'] ? $v['madhya_naam
     </div>
     <?php endif; ?>
 
+    <!-- Feature 2: Sambandh Add Form -->
+    <?php if (isMukhya()): ?>
+    <div style="margin-top: 32px; margin-bottom: 24px;">
+        <div class="section-header">
+            <span class="section-title">संबंध जोड़ें</span>
+        </div>
+        <div class="card" style="padding:16px; border: 1.5px solid var(--rang-dwitiya); background: var(--bg-main);">
+            <form action="/api/vyakti.php?action=sambandh_jodo" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+                <input type="hidden" name="vyakti_a_id" value="<?php echo $v['id']; ?>">
+                
+                <div class="form-group">
+                    <label>यह व्यक्ति किससे जुड़े हैं?</label>
+                    <select name="vyakti_b_id" class="form-control" required>
+                        <option value="">— व्यक्ति चुनें —</option>
+                        <?php
+                        $all = $pdo->prepare("SELECT id, pratham_naam, kul_naam FROM vyakti WHERE parivar_id = ? AND id != ? ORDER BY pratham_naam");
+                        $all->execute([$parivar_id, $id]);
+                        foreach ($all->fetchAll() as $p):
+                        ?>
+                        <option value="<?php echo $p['id']; ?>"><?php echo s($p['pratham_naam'] . ' ' . $p['kul_naam']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label><?php echo s($v['pratham_naam']); ?> का संबंध है</label>
+                    <select name="sambandh_prakar" class="form-control" required>
+                        <option value="pita">पिता</option>
+                        <option value="mata">माता</option>
+                        <option value="pati">पति</option>
+                        <option value="patni">पत्नी</option>
+                        <option value="putra">पुत्र</option>
+                        <option value="putri">पुत्री</option>
+                        <option value="bhai">भाई</option>
+                        <option value="behen">बहन</option>
+                        <option value="datta_putra">दत्तक पुत्र</option>
+                        <option value="datta_putri">दत्तक पुत्री</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="font-size:13px; padding:10px;">संबंध जोड़ें</button>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
+
 </div>
 
 <?php include '../includes/nav.php'; ?>
