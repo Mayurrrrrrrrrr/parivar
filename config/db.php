@@ -5,7 +5,14 @@
 $envFile = __DIR__ . '/../.env';
 $env = [];
 if (file_exists($envFile)) {
-    $env = parse_ini_file($envFile);
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        $parts = explode('=', $line, 2);
+        if (count($parts) === 2) {
+            $env[trim($parts[0])] = trim($parts[1], "\"' ");
+        }
+    }
 }
 
 define('DB_HOST', $env['DB_HOST'] ?? 'localhost');
