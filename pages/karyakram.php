@@ -5,6 +5,10 @@
 require_once __DIR__ . '/../includes/header.php';
 requireLogin();
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 $parivar_id = currentParivarId();
 $action = $_GET['action'] ?? 'list';
 
